@@ -110,15 +110,16 @@ def writeNodes(nodeOutFile, nodeSet):
             oboNodeOut.write(node)
     return nodeCount
 
-def writeRelationships(relnOutFile, relnSet):
+def writeRelationships(relnOutFile, nodeSet, relnSet):
     """ Writes header and relationships to oboRelnOut.csv """
     relnCount = 0
     with open(relnOutFile, "w") as oboRelnOut:
         oboRelnOut.write(":START_ID|source|:END_ID|:TYPE\n")
         for reln in relnSet:
-            reln = clean(reln)
-            relnCount += 1
-            oboRelnOut.write(reln + "\n")
+            if reln in nodeSet:
+                reln = clean(reln)
+                relnCount += 1
+                oboRelnOut.write(reln + "\n")
     return relnCount
 
 ##################################################################################################################
@@ -135,7 +136,7 @@ def createOutDirectory(topDir):
 
 def clean(string):
     """ cleans lines of any characters that may affect neo4j database creation or import """
-    cleaned = string.replace(";", ",")
+    cleaned = string.replace("'", "").replace('"', '')
     return cleaned
 
 def howToRun():
@@ -177,9 +178,9 @@ def main(argv):
             ontologyRoot = topDir + "Ontology/"
             
             print "\n\n\n\t\t\t\t=====================================  PARSING Ontologies ====================================="
-            print "\n\t\t\t\t\t\t\t\t\tProcessing files in:\n\n\t\t\t\t\t\t    %s\n" % ontologyRoot
+            print "\n\t\t\t\t\t\t\t\t\tProcessing files in:\n\n\t\t\t\t\t\t\t\t    %s\n" % ontologyRoot
             print "\n\t\t\t\t\t\t\t\t\t Files processed: \n"
-            nodeSet = set()
+            bigSet = set()
             relnSet = set()
             totalNodeCount = 0
             totalRelnCount = 0
@@ -212,7 +213,7 @@ def main(argv):
                                 nodeString = "%s|%s|%s|%s|%s|%s\n" %(ontologyObj.getID(), ontologyObj.getName(), editedSource, ontologyObj.getDef(), ontologyObj.getSynonyms(), ontologyObj.getLabel())
                                 nodeString = nodeString.replace("None", "").replace("|p|", "|plant_ontology|")
                                 nodeSet.add(nodeString)
-
+                                bigSet.add(nodeString)
                                 # create relationships
                                 for reln in ontologyObj.getRelationships():
                                     relnString = "%s|%s|%s|%s" %(reln[0], editedSource, reln[2], reln[1])
@@ -223,12 +224,13 @@ def main(argv):
                                 nodeOutFile = (topDir + "csv_out/" + editedSource + ".csv")
                                 nodeCount = writeNodes(nodeOutFile, nodeSet)
                                 totalNodeCount += nodeCount
-                                print "\t\t\t\t\t  %s " %oboFilePath
+                                print "\t\t\t\t\t\t  %s " %oboFilePath
                                 print "\t\t\t\t\t\t\t %s nodes have been created from this ontology.\n" %locale.format("%d", nodeCount, True)
 
             # write relationships
+            print len(bigSet)
             relnOutFile = (topDir + "csv_out/ontologyRelnOut.csv")
-            relnCount = writeRelationships(relnOutFile, relnSet)
+            relnCount = writeRelationships(relnOutFile, bigSet, relnSet)
             
             endTime = time.clock()
             duration = endTime - startTime

@@ -64,7 +64,6 @@ def parseCitations(citationsFilePath, taxMap):
 			columns = line.strip().split("|")
 			citationObj = TaxCitationsParser(columns)
 			if citationObj.medline_id != "0":
-				# print citationObj.medline_id, citationObj.nodeList, '\n'
 				for node in citationObj.nodeList:
 					if node != "":
 						nodeID = ("NCBI_TAXONOMY:" + node)
@@ -107,7 +106,7 @@ def createOutDirectory(topDir):
 
 def clean(string):
 	"""	cleans lines of any characters that may affect neo4j database creation or import """
-	cleaned = string.replace(";", ",")
+	cleaned = string.replace("'", "").replace('"', '')
 	return cleaned
 
 def howToRun():

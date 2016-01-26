@@ -59,6 +59,7 @@ class OntologyParser(object):
 			for xref in self.kwargs["xref"]:
 				Synonyms.add(xref)
 		Synonyms = ";".join(Synonyms)
+		Synonyms = Synonyms.replace('"', "").replace("'", "")
 		return Synonyms
 
 	def getRelationships(self):

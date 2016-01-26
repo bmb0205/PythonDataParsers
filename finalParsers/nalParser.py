@@ -39,35 +39,51 @@ def getBlock(nalFile):
 
 def parseNAL(blockList, nalMap):
 	"""
-	Populates nalMap with the key being the unique NAL ID and the value being 
-	a defaultdict(str) of attributes of each block.
-	Adds "UF" myDict key to set for synonyms.
+	Populates nalMap with the key being the unique NAL ID and the value being myMap, a defaultdict(str) of attributes of each block.
+	myMap has sets for "UF" and "BT" keys for synonyms and relationships, respectively.
 	"""
 	mySet = set()
-	count = 0
 	for block in blockList:
-		count += 1
-		myDict = defaultdict(str)
-		myDict["UF"] = set()
+		myMap = defaultdict(str)
+		myMap["UF"] = set()
+		myMap["BT"] = set()
 		for item in block[1:]:
 			temp = re.split(">", item)[0]
 			key = temp[1:]
 			match = re.search(">(.+)<", item)
 			if match:
 				if key == "UF":
-					myDict["UF"].add(match.group(1))
+					myMap["UF"].add(match.group(1))
+				elif key == "BT":
+					myMap["BT"].add(match.group(1))
 				else:
-					myDict[key] = match.group(1)
-			uniqueID = "NAL:" + myDict["TNR"]
-			nalMap[uniqueID] = myDict
+					myMap[key] = match.group(1)
+			uniqueID = "NAL:" + myMap["TNR"]
+			nalMap[uniqueID] = myMap
 	return nalMap
 
 def writeNodes(nalMap, nalNodeOutFile):
-	""" Iterates nalMap, calls desired attributes and writes node to outfile """
+	"""
+	Iterates nalMap, calls desired attributes and writes node to outfile.
+	Populates idDescriptorMap with descriptor as key and uniqueID as value, to be used to write relationships.
+	"""
+	idDescriptorMap = dict()
 	for uniqueID, attributes in nalMap.iteritems():
+		idDescriptorMap[attributes["DESCRIPTOR"]] = uniqueID
 		node = "%s|National_Agricultural_Library|%s|%s|%s|Plant\n" %(uniqueID, attributes["DESCRIPTOR"], attributes["SC"], ";".join(attributes["UF"]))
 		nalNodeOutFile.write(node)				
+	return idDescriptorMap
 
+def writeRelns(idDescriptorMap, nalMap, nalRelnOutFile):
+	"""	Iterates nalMap and idDescription map to create and write relationships. """
+	count = 0
+	for startNode, attributes in nalMap.iteritems():
+		for relationship in attributes["BT"]:
+			count += 1
+			endNode = idDescriptorMap[relationship]
+			reln = "%s|National_Agricultural_Library|%s|is_a\n" %(startNode, endNode)
+			nalRelnOutFile.write(reln)
+	print "\n\t\t\t\t\t\t%s National Agricultural Library relationships have been created...\n" %locale.format('%d', count, True)
 
 ##################################################################################################################
 ##########################################   General   #########################################################
@@ -99,7 +115,6 @@ def howToRun():
     print "\t\t\t\t * <subfiles> : *.xml\n"
     sys.exit(2) 
 
-
 def main(argv):
 	"""
 	If run as main script, function executes.
@@ -126,8 +141,8 @@ def main(argv):
 			nalRelnOutFile = open((outPath + "nalRelnOut.csv"), 'w')
 			nalRoot = topDir + "NAL/"
 
-			nalNodeOutFile.write("source_id:ID|source|descriptor|subject_category|synonyms:string[]|LABEL:\n")
-
+			nalNodeOutFile.write("source_id:ID|source|descriptor|subject_category|synonyms:string[]|:LABEL\n")
+			nalRelnOutFile.write(":START_ID|National_Agricultural_Library|:END_ID|:TYPE\n")
 			print "\n\n\n\t\t\t\t===================  PARSING National Agricultural Library Thesaurus ====================="
 			print "\n\t\t\t\t\t\t\t\t\tProcessing files in:\n\n\t\t\t\t\t\t\t\t    %s\n" % nalRoot
 			print "\n\t\t\t\t\t\t\t\t\t Files processed: "
@@ -142,11 +157,12 @@ def main(argv):
 							with open(nalFilePath, 'ru') as inFile:
 								blockList = getBlock(inFile)
 								nalMap = parseNAL(blockList, nalMap)
-								print "\n\t\t\t\t\t\t%s National Agricultural Library nodes have been created...\n" %locale.format('%d', len(nalMap), True)
-			writeNodes(nalMap, nalNodeOutFile)
+								print "\n\t\t\t\t\t\t%s National Agricultural Library nodes have been created..." %locale.format('%d', len(nalMap), True)
+			idDescriptorMap = writeNodes(nalMap, nalNodeOutFile)
+			writeRelns(idDescriptorMap, nalMap, nalRelnOutFile)
 			endTime = time.clock()
 			duration = endTime - startTime
-			print "\t\t\t\t\t\tIt took %s seconds to parse the files and create all NAL nodes \n" %duration
+			print "\t\t\t\t\tIt took %s seconds to parse the files and create all NAL nodes and relationships \n" %duration
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

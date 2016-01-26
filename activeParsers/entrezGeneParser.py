@@ -101,7 +101,6 @@ def geneTaxReln(geneFilePath, geneTaxRelnOutFile, combined): # NCBIEntrezGene/ge
 			columns = line.strip().split("\t")
 			obj = GeneToTax(columns)
 			if obj.gene_id in combined:
-				source = "NCBI_Entrez_Gene"
 				myKey = (obj.tax_id, obj.predicate, obj.gene_id)
 				geneTaxMap[myKey].add(obj.other_tax_id)
 				geneTaxMap[myKey].add(obj.other_gene_id)
@@ -258,9 +257,9 @@ def main(argv):
 						if geneFilePath.endswith("gene_group"):
 							print "\n\t\t\t\t\t%s" %geneFilePath
 							geneTaxRelnCount = geneTaxReln(geneFilePath, geneTaxRelnOutFile, combined)
-						if geneFilePath.endswith("medgen"):
-							print "\n\t\t\t\t\t%s" %geneFilePath
-							geneMIMRelnSet = geneMIMReln(geneFilePath)
+						# if geneFilePath.endswith("medgen"):
+						# 	print "\n\t\t\t\t\t%s" %geneFilePath
+						# 	geneMIMRelnSet = geneMIMReln(geneFilePath, geneMIMRelnOutFile, combined)
 					endTime = time.clock()
 					duration = endTime - startTime
 					print "\n\t\t\t\t\t   %s total NCBI Entrez Gene nodes have been created..." %locale.format('%d', (nodeCountList[0] + nodeCountList[1]), True)
