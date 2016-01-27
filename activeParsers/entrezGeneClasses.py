@@ -10,8 +10,6 @@ Holds classes EntrezNode, GeneToGO, GeneToTax, GeneToMIM
 
 """
 
-
-
 class GeneToGO(object):
 	""" populates object with attributes from gene2go file for gene -> GO relationships """
 	def __init__(self, columns):
@@ -43,18 +41,12 @@ class GeneToTax(object):
 
 
 class GeneToMIM(object):
-	""" populates object with attributes from mim2gene_medgen.txt file for gene -> MIM relationships """
+	""" populates object with attributes from mim2gene_medgen file for gene -> MIM relationships """
 	def __init__(self, columns):
 		self.columns = columns
 		self.MIM_id = "MIM:" + columns[0].strip()
+		self.gene_id = "ENTREZ:" + self.columns[1].strip()
 		self.type = columns[2].strip()
-
-	def getGeneID(self):
-		gene_id = "ENTREZ:" + self.columns[1].strip()
-		if not gene_id.endswith("-"):
-			return gene_id
-		else:
-			return ""
 
 	def getSource(self):
 		source = self.columns[3].strip()
@@ -62,13 +54,6 @@ class GeneToMIM(object):
 			return source
 		else:
 			return "NCBI_Entrez_Gene_to_OMIM"
-
-	# def getSynonym(self):
-	# 	self.synonym = self.columns[4].strip()
-	# 	if self.synonym != "-":
-	# 		return self.synonym
-	# 	else:
-	# 		return ""
 
 class EntrezNode(object):
 	""" populates object with attributes from .gene_info files for node creation """
@@ -96,9 +81,14 @@ class EntrezNode(object):
 			return ""
 
 	def getOtherDesignations(self):
-		""" returns synonym if not '-'' """
+		""" returns synonym if not '-' """
 		other_designations = self.columns[13].strip()
 		if other_designations != "-":
 			return other_designations
 		else:
 			return ""
+
+
+
+
+

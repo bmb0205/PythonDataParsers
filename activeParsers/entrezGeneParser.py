@@ -48,19 +48,18 @@ def writeGeneNodes(geneFilePath, geneNodeOutFile, count):
 				node = "%s|NCBI_Entrez_Gene|%s|%s|Gene\n" %(obj.gene_id, obj.preferred_term, synString)
 				node = clean(node)
 				geneNodeOutFile.write(node)
-	print "\t\t\t\t\t\t%s nodes have been created from this file\n" %locale.format('%d', count, True)
+	print "\t\t\t\t\t\t    %s nodes have been created from this file\n" %locale.format('%d', count, True)
 	return geneSet, count
 
 def getPredicate(obj):
+	predicate = ""
 	if obj.predicate == "Component":
 		predicate = "is_a"
-		return predicate
 	elif obj.predicate == "Function":
 		predicate = "performs"
-		return predicate
 	elif obj.predicate == "Process":
 		predicate = "part_of"
-		return predicate
+	return predicate
 
 def geneGOReln(geneFilePath, geneGORelnOutFile, combined):  # NCBIEntrezGene/gene2go.... geneSet is number of unique nodes written (2,007,027)
 	""" creates relationships for entrez gene to GO and writes to outfile """
@@ -88,7 +87,6 @@ def writeGeneGOReln(geneGOMap, geneGORelnOutFile):
 		reln = "%s|NCBI_Entrez_Gene|%s|%s|%s\n" %(k[0], joinedArticles, k[2], k[1])
 		geneGORelnOutFile.write(reln)
 	print "\t\t\t%s NCBI Entrez Gene -> Gene Ontology (GO) relationships have been created from this file." %locale.format('%d', count, True)
-
 
 def geneTaxReln(geneFilePath, geneTaxRelnOutFile, combined): # NCBIEntrezGene/gene_group
 	""" creates relationships for entrez gene to NCBI taxonomy and writes to outfile """
@@ -125,50 +123,35 @@ def writeGeneTaxReln(geneTaxMap, geneTaxRelnOutFile):
 		geneTaxRelnOutFile.write(reln)
 	print "\t\t\t\t%s NCBI Entrez Gene -> NCBI Taxonomy relationships have been created from this file." %locale.format('%d', count, True)
 
-
-
-"""
-
-
-
-stopped here. what should relns look like? any interest in medgenCUI or type (pheno/gene)?
-
-working below as of 5:21pm on 1/21
-
-
-"""
-
-def geneMIMReln(geneFilePath): # NCBIEntrezGene/mim2gene_medgen.txt
+def geneMIMReln(geneFilePath, geneMIMRelnOutFile, combined): # NCBIEntrezGene/mim2gene_medgen.txt
 	""" creates relationships for entrez gene to MIM and writes to outfile """
 	print "\t\t\t\t\t     Creating and writing NCBI Entrez Gene -> MIM relationships"
-	geneMIMMap = defaultdict(set)
 	relnSet = set()
-	with open(geneFilePath, 'ru') as inFile:
+	duplicateRelns = geneFilePath.rsplit("/", 2)[0] + "/csv_out/duplicateGeneMIMReln.csv"
+	with open(geneFilePath, 'ru') as inFile, open(duplicateRelns, 'w') as duplicateRelnOutFile:
+		duplicateRelnOutFile.write("# relationships that contain both gene and phenotype duplicates")
 		for line in inFile:
 			if line.startswith("#"):
 				continue
 			columns = line.strip().split("\t")
 			obj = GeneToMIM(columns)
-			if not obj.getGeneID() == "":
-				myKey = (obj.getGeneID(), "belongs_to", obj.MIM_id) #(obj.getGeneID(), "NCBI_Entrez_Gene", obj.MIM_id, "belongs_to")
+			if obj.gene_id in combined:
+				myKey = (obj.gene_id, "NCBI_Entrez_Gene", "belongs_to", obj.MIM_id)
 				if myKey in relnSet:
-					print myKey, '\n'
-				else:
-					relnSet.add(myKey)
-				# else:
-				# 	relnSet.add(myKey)
-	print len(relnSet)
+					duplicateRelnOutFile.write("|".join(myKey) + "\n")
+				relnSet.add(myKey)
+	writeGeneMIMReln(relnSet, geneMIMRelnOutFile)
+	return len(relnSet)
 
-
-def writeGeneMIMReln(combinedSet, geneMIMRelnOutFile):
+def writeGeneMIMReln(relnSet, geneMIMRelnOutFile):
 	count = 0
-	for reln in combinedSet:
+	for reln in relnSet:
 		count += 1
 		joined = "|".join(reln)
 		joined = joined + "\n"
 		cleaned = clean(joined)
 		geneMIMRelnOutFile.write(cleaned)
-	print "\n\t\t\t\tAn additional %s NCBI Entrez Gene -> MIM relationships have been created from this file." %locale.format('%d', count, True)
+	print "\t\t\t\t%s NCBI Entrez Gene -> MIM relationships have been created from this file." %locale.format('%d', count, True)
 
 
 ##################################################################################################################
@@ -230,7 +213,7 @@ def main(argv):
 			geneMIMRelnOutFile = open((outPath + 'geneMIMRelnOut.csv'), 'w')
 
 			geneNodeOutFile.write("source_id:ID|source|preferred_term|synonyms:string[]|:LABEL\n")
-			geneTaxRelnOutFile.write(":START_ID|alternate_tax_ids:string[]|source|alternate_gene_ids:stringp[]|:END_ID|:TYPE\n")
+			geneTaxRelnOutFile.write(":START_ID|alternate_tax_ids:string[]|source|alternate_gene_ids:string[]|:END_ID|:TYPE\n")
 			geneGORelnOutFile.write(":START_ID|source|pubmed_articles:string[]|:END_ID|:TYPE\n")
 			geneMIMRelnOutFile.write(":START_ID|source|:END_ID|:TYPE\n")
 
@@ -241,30 +224,29 @@ def main(argv):
 					count = 0
 					print "\n\n\n\t\t\t================================ PARSING NCBI Entrez Gene Database ==================================="
 					print "\n\t\t\t\t\t\t\t\tProcessing files in:\n"
-					nodeCountList = []
-					nodeList = []
+					nodeCountList = list()
+					nodeList = list()
 					for geneFile in files:
 						geneFilePath = os.path.join(root, geneFile)
 						if geneFilePath.endswith(".gene_info"):
-							print "\t\t\t\t%s" %geneFilePath
+							print "\t\t\t\t\t\t%s" %geneFilePath
 							geneSet, geneNodeCount = writeGeneNodes(geneFilePath, geneNodeOutFile, count)
 							nodeList.append(geneSet)
 							nodeCountList.append(len(geneSet))
 						if geneFilePath.endswith("gene2go"):
 							combined = nodeList[0].union(nodeList[1])
-							print "\n\t\t\t\t\t%s" %geneFilePath
+							print "\n\t\t\t\t\t\t%s" %geneFilePath
 							geneGORelnCount = geneGOReln(geneFilePath, geneGORelnOutFile, combined)
 						if geneFilePath.endswith("gene_group"):
-							print "\n\t\t\t\t\t%s" %geneFilePath
+							print "\n\t\t\t\t\t\t%s" %geneFilePath
 							geneTaxRelnCount = geneTaxReln(geneFilePath, geneTaxRelnOutFile, combined)
-						# if geneFilePath.endswith("medgen"):
-						# 	print "\n\t\t\t\t\t%s" %geneFilePath
-						# 	geneMIMRelnSet = geneMIMReln(geneFilePath, geneMIMRelnOutFile, combined)
+						if geneFilePath.endswith("medgen"):
+							print "\n\t\t\t\t\t%s" %geneFilePath
+							geneMIMRelnCount = geneMIMReln(geneFilePath, geneMIMRelnOutFile, combined)
 					endTime = time.clock()
 					duration = endTime - startTime
 					print "\n\t\t\t\t\t   %s total NCBI Entrez Gene nodes have been created..." %locale.format('%d', (nodeCountList[0] + nodeCountList[1]), True)
-					print "\n\t\t\t   %s total NCBI Entrez Gene relationships have been created, excluding NCBI Entrez Gene -> MIM" %locale.format('%d', (geneGORelnCount + geneTaxRelnCount), True)
-
+					print "\n\t\t\t\t\t   %s total NCBI Entrez Gene relationships have been created." %locale.format('%d', (geneGORelnCount + geneTaxRelnCount + geneMIMRelnCount), True)
 					print "\n\t\t\t\t\tIt took %s seconds to create all NCBI Entrez nodes and relationships\n" %duration
 
 
