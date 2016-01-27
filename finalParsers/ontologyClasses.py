@@ -15,7 +15,7 @@ Holds class OntologyParser
 class OntologyParser(object):
 	"""
 	Class OntologyParser holds an ontology object for processing.
-	Input data type: dictionary from individual ontoogy stanza
+	Input data type: dictionary from individual ontology stanza
 
 	"""
 	def __init__(self, **kwargs):
@@ -27,12 +27,13 @@ class OntologyParser(object):
 			return True
 
 	def getName(self):
-		""" Returns name or empty string """
+		""" Returns name """
 		if "name" in self.kwargs:
 			name = self.kwargs["name"][0]
 			return name
 
 	def getID(self):
+		""" Returns ID """
 		if "id" in self.kwargs:
 			ID =  self.kwargs["id"][0]
 			if "!" in ID:
@@ -40,29 +41,34 @@ class OntologyParser(object):
 			return ID
 
 	def getDef(self):
+		""" Trimms definition and returns it """
 		if "def" in self.kwargs:
 			temp = self.kwargs["def"][0]
 			trimmed = re.split(" \[", temp)[0]
-			trimmed = trimmed.strip("'")
 			return trimmed
 
 	def getSynonyms(self):
-		Synonyms = set()
-		if not "synonym" in self.kwargs:
-			return "";
-		if "synonym" in self.kwargs: # or "xref" in self.kwargs:
+		""" Parses synonyms and xrefs and joins into ; separated string of synonyms """
+		synonymSet = set()
+		if "synonym" not in self.kwargs:
+			return ""
+		if "synonym" in self.kwargs:
 			for synonym in self.kwargs["synonym"]:
 				if "EXACT" in synonym:
 					synonym = re.split(" EXACT ", synonym)[0]
-					Synonyms.add(synonym)
+					synonymSet.add(synonym)
 		if "xref" in self.kwargs:
 			for xref in self.kwargs["xref"]:
-				Synonyms.add(xref)
-		Synonyms = ";".join(Synonyms)
-		Synonyms = Synonyms.replace('"', "").replace("'", "")
-		return Synonyms
+				synonymSet.add(xref)
+		synonymSet = ";".join(synonymSet)
+		synonymSet = synonymSet.replace('"', "").replace("'", "")
+		return synonymSet
 
 	def getRelationships(self):
+		"""
+		Gathers relationships according to key (is_a, relationship, intersection_of) and returns in set
+		Skips anonymous chemicals and uses either specific or hard coded predicate depending on format
+		"""
 		relationSet = set()
 		ID = self.kwargs["id"][0]
 		if "is_a" in self.kwargs:
@@ -101,20 +107,18 @@ class OntologyParser(object):
 		return relationSet
 
 	def getLabel(self):
+		""" Hard codes label according to source """
+		label = ""
 		ID = self.kwargs["id"][0]
 		if ID.startswith("GO"):
-			Label = "Gene"
-			return Label
+			label = "Gene"
 		elif ID.startswith("CHEBI"):
-			Label = "Chemical"
-			return Label
+			label = "Chemical"
 		elif ID.startswith("DOID"):
-			Label = "Disease"
-			return Label
+			label = "Disease"
 		elif ID.startswith("PO") or ID.startswith("TO"):
-			Label = "Plant"
-			return Label
+			label = "Plant"
 		elif ID.startswith("MP") or ID.startswith("HP"):
-			Label = "Phenotype"
-			return Label
+			label = "Phenotype"
+		return label
 

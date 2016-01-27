@@ -9,8 +9,6 @@ import locale
 import itertools
 from ontologyClasses import OntologyParser
 
-
-
 """
 ##################################################################################################################
 ##########################################   Ontology Parser   #########################################################
@@ -110,17 +108,28 @@ def writeNodes(nodeOutFile, nodeSet):
             oboNodeOut.write(node)
     return nodeCount
 
-def writeRelationships(relnOutFile, nodeSet, relnSet):
-    """ Writes header and relationships to oboRelnOut.csv """
+def writeRelationships(relnOutFile, uniqueNodeSet, relnSet):
+    """ Writes header and relationships to oboRelnOut.csv if the nodes exist """
     relnCount = 0
-    with open(relnOutFile, "w") as oboRelnOut:
+    count = 0
+    badRelnOutFile = relnOutFile.rsplit("/", 1)[0] + "/badOntologyReln.csv"
+    with open(relnOutFile, "w") as oboRelnOut, open(badRelnOutFile, "w") as badOntologyRelnOut:
         oboRelnOut.write(":START_ID|source|:END_ID|:TYPE\n")
+        badOntologyRelnOut.write("# relationships with at least one missing node\n")
         for reln in relnSet:
-            if reln in nodeSet:
-                reln = clean(reln)
+            reln1 = reln.split("|")[0]
+            reln2 = reln.split("|")[2]
+            if reln1 in uniqueNodeSet and reln2 in uniqueNodeSet:
                 relnCount += 1
+                reln = clean(reln)
                 oboRelnOut.write(reln + "\n")
+            else: # skips relationships due to nodes not existing
+                if reln1 not in uniqueNodeSet:
+                    badOntologyRelnOut.write(reln + "\t\tMissing node:  " + reln1 + '\n')                    
+                elif reln2 not in uniqueNodeSet:
+                    badOntologyRelnOut.write(reln + "\t\tMissing node:  " + reln2 + '\n')
     return relnCount
+
 
 ##################################################################################################################
 ##########################################   General   #########################################################
@@ -178,19 +187,19 @@ def main(argv):
             ontologyRoot = topDir + "Ontology/"
             
             print "\n\n\n\t\t\t\t=====================================  PARSING Ontologies ====================================="
-            print "\n\t\t\t\t\t\t\t\t\tProcessing files in:\n\n\t\t\t\t\t\t\t\t    %s\n" % ontologyRoot
+            print "\n\t\t\t\t\t\t\t\t\tProcessing files in:\n\n\t\t\t\t\t\t\t\t%s\n" % ontologyRoot
             print "\n\t\t\t\t\t\t\t\t\t Files processed: \n"
-            bigSet = set()
+            
+            uniqueNodeSet = set()
             relnSet = set()
             totalNodeCount = 0
-            totalRelnCount = 0
             for root, dirs, files in os.walk(topDir):
                 if root.endswith("Ontology"):
                     for oboFile in files:
+
                         if oboFile.endswith(".obo"):
                             nodeSet = set()
                             oboFilePath = os.path.join(root, oboFile)
-                            testSet = set()
 
                             # get term, typedef and metadata lists from file
                             with open(oboFilePath, "r") as inFile:
@@ -200,42 +209,53 @@ def main(argv):
                             Source = getSource(metaData)
                             editedSource = editSource(Source, oboFilePath)
                             
-                            # create OntologyParser object for each term block
-                            for term in termList:
-                                dataDict = parseTagValue(term)
-                                ontologyObj = OntologyParser(**dataDict)
-
-                                # Skips obsolete nodes
-                                if ontologyObj.skipObsolete() is True:
-                                    continue
-
-                                # create nodes
-                                nodeString = "%s|%s|%s|%s|%s|%s\n" %(ontologyObj.getID(), ontologyObj.getName(), editedSource, ontologyObj.getDef(), ontologyObj.getSynonyms(), ontologyObj.getLabel())
-                                nodeString = nodeString.replace("None", "").replace("|p|", "|plant_ontology|")
-                                nodeSet.add(nodeString)
-                                bigSet.add(nodeString)
-                                # create relationships
-                                for reln in ontologyObj.getRelationships():
-                                    relnString = "%s|%s|%s|%s" %(reln[0], editedSource, reln[2], reln[1])
-                                    relnSet.add(relnString)
-
-                            # write nodes
+                            # write nodes and relationships from individual ontology files
                             if not oboFilePath.endswith(("GOmfbp_to_ChEBI03092015.obo", "molecular_function_xp_chebi03092015.obo")):
+
+                                # create OntologyParser object for each term block
+                                for term in termList:
+                                    dataDict = parseTagValue(term)
+                                    ontologyObj = OntologyParser(**dataDict)
+
+                                    # Skips obsolete nodes
+                                    if ontologyObj.skipObsolete() is True:
+                                        continue
+
+                                    # create node strings
+                                    nodeString = "%s|%s|%s|%s|%s|%s\n" %(ontologyObj.getID(), ontologyObj.getName(), editedSource, ontologyObj.getDef(), ontologyObj.getSynonyms(), ontologyObj.getLabel())
+                                    nodeString = nodeString.replace("None", "").replace("|p|", "|plant_ontology|")
+                                    nodeSet.add(nodeString)
+                                    uniqueNodeSet.add(ontologyObj.getID())
+
+                                    # create relationship strings within ontology files, adds to relnSet
+                                    for reln in ontologyObj.getRelationships():
+                                        relnString = "%s|%s|%s|%s" %(reln[0], editedSource, reln[2], reln[1])
+                                        relnSet.add(relnString)
+
+                                # write nodes
                                 nodeOutFile = (topDir + "csv_out/" + editedSource + ".csv")
                                 nodeCount = writeNodes(nodeOutFile, nodeSet)
                                 totalNodeCount += nodeCount
                                 print "\t\t\t\t\t\t  %s " %oboFilePath
                                 print "\t\t\t\t\t\t\t %s nodes have been created from this ontology.\n" %locale.format("%d", nodeCount, True)
 
+                            # create relationship strings for cross-ontology files, adds to relnSet
+                            else:
+                                for term in termList:
+                                    dataDict = parseTagValue(term)
+                                    ontologyObj = OntologyParser(**dataDict)
+                                    for reln in ontologyObj.getRelationships():
+                                        relnString = "%s|%s|%s|%s" %(reln[0], editedSource, reln[2], reln[1])
+                                        relnSet.add(relnString)
+
             # write relationships
-            print len(bigSet)
             relnOutFile = (topDir + "csv_out/ontologyRelnOut.csv")
-            relnCount = writeRelationships(relnOutFile, bigSet, relnSet)
+            relnCount = writeRelationships(relnOutFile, uniqueNodeSet, relnSet)
             
             endTime = time.clock()
             duration = endTime - startTime
-            print "\n\t\t\t\t\t\t\t%s nodes and %s relationships have been created\n" %(locale.format("%d", totalNodeCount, True), locale.format("%d", relnCount, True))
-            print "\n\t\t\t\t\t\t  It took %s seconds to create all ontology nodes and relationships \n\n" %duration
+            print "\n\t\t\t\t\t\t  %s nodes and %s ontology relationships have been created." %(locale.format("%d", totalNodeCount, True), locale.format("%d", relnCount, True))
+            print "\n\t\t\t\t\t\tIt took %s seconds to create all ontology nodes and relationships. \n\n" %duration
             
 if __name__ == "__main__":
     main(sys.argv[1:])
