@@ -141,7 +141,7 @@ def main(argv):
 			nalRelnOutFile = open((outPath + "nalRelnOut.csv"), 'w')
 			nalRoot = topDir + "NAL/"
 
-			nalNodeOutFile.write("source_id:ID|source|descriptor|subject_category|synonyms:string[]|:LABEL\n")
+			nalNodeOutFile.write("Source_ID:ID|Source|Descriptor|Subject_Category|Synonyms:string[]|:LABEL\n")
 			nalRelnOutFile.write(":START_ID|National_Agricultural_Library|:END_ID|:TYPE\n")
 			print "\n\n\n\t\t\t\t===================  PARSING National Agricultural Library Thesaurus ====================="
 			print "\n\t\t\t\t\t\t\t\t\tProcessing files in:\n\n\t\t\t\t\t\t\t\t    %s\n" % nalRoot

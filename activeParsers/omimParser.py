@@ -40,7 +40,7 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile): # MIM/geneMap2.txt
 		for line in inFile:
 			columns = line.replace("''", "").replace("'", "prime").split("|")
 			obj = MIMNode(columns)
-
+			testSet.add(obj.gene_id)
 			print '\n'
 			print obj.gene_id
 			if not obj.disorder_info == "":
@@ -52,9 +52,16 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile): # MIM/geneMap2.txt
 				# obj.getDisorderMIM()
 				# print obj.gene_id
 				relnSet = obj.getDisorderMIM()
+				print vars(obj)
 				print relnSet
 			else:
-				print 'no disorders'
+				print 'no disorders\n', vars(obj)
+
+	print len(testSet)
+
+
+
+
 				# print '\n\n'#, "\ngene mim: ", obj.gene_id, '\n\npheneSet: ', pheneSet, '\n\ngetDisorderMimAndTexT: ', obj.getDisorderTextAndMIM(), '\n\n', line, '\n\n\n'
 	# 			pheneTextList = re.findall(";", obj.getDisorderMIM())
 

@@ -101,7 +101,7 @@ def writeNodes(nodeOutFile, nodeSet):
     """ Writes ontology nodes using attributes listed """
     nodeCount = 0
     with open(nodeOutFile, "w") as oboNodeOut:
-        oboNodeOut.write("source_id:ID|name|source|def|synonyms:string[]|:LABEL\n")
+        oboNodeOut.write("Source_ID:ID|Name|Source|Definition|Synonyms:string[]|:LABEL\n")
         for node in nodeSet:
             node = clean(node)
             nodeCount += 1
@@ -114,7 +114,7 @@ def writeRelationships(relnOutFile, uniqueNodeSet, relnSet):
     count = 0
     badRelnOutFile = relnOutFile.rsplit("/", 1)[0] + "/badOntologyReln.csv"
     with open(relnOutFile, "w") as oboRelnOut, open(badRelnOutFile, "w") as badOntologyRelnOut:
-        oboRelnOut.write(":START_ID|source|:END_ID|:TYPE\n")
+        oboRelnOut.write(":START_ID|Source|:END_ID|:TYPE\n")
         badOntologyRelnOut.write("# relationships with at least one missing node\n")
         for reln in relnSet:
             reln1 = reln.split("|")[0]

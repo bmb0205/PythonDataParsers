@@ -145,8 +145,8 @@ def main(argv):
 
 			taxNodeOutFile = open((outPath + 'taxNodeOut.csv'), 'w')
 			taxRelnOutFile = open((outPath + 'taxRelnOut.csv'), 'w')
-			taxNodeOutFile.write("source_id:ID|source|term|preferred_term|rank|synonyms:string[]|medline_id|:LABEL\n")
-			taxRelnOutFile.write(":START_ID|source|:END_ID|:TYPE\n")
+			taxNodeOutFile.write("Source_ID:ID|Source|Term|Preferred_Term|Rank|Synonyms:string[]|Medline_ID|:LABEL\n")
+			taxRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
 
 			taxRoot = topDir + "NCBITaxonomy/"
 			print "\n\n\n\t\t\t\t=====================================  PARSING NCBI Taxonomy ====================================="
