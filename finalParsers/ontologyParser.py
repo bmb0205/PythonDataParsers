@@ -211,7 +211,6 @@ def main(argv):
                             
                             # write nodes and relationships from individual ontology files
                             if not oboFilePath.endswith(("GOmfbp_to_ChEBI03092015.obo", "molecular_function_xp_chebi03092015.obo")):
-
                                 # create OntologyParser object for each term block
                                 for term in termList:
                                     dataDict = parseTagValue(term)
