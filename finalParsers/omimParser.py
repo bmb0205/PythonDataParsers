@@ -26,9 +26,12 @@ Written by: Brandon Burciaga
 # 15705 unique gene nodes total
 def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile): # MIM/geneMap2.txt
 	"""	writes MIM gene nodes to mimGeneNodeOutFile, writes MIM relationships to mimRelnOutFile """
+	nodeCount = 0
+	relnCount = 0
 	with open(MIMFilePath, 'ru') as inFile:
 		uniqueSet = set()
 		for line in inFile:
+			nodeCount += 1
 			columns = line.replace("''", "").replace("'", "prime").split("|")
 			obj = MIMNode(columns)
 			mimGeneNode = "%s|OMIM|%s|%s|%s|Gene\n" %(obj.gene_id, obj.getGeneSymbols(), obj.cytogenetic_location, obj.name)
@@ -37,10 +40,14 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile): # MIM/ge
 				relnSet = obj.getDisorderInfo()
 				for reln in relnSet:
 					if not reln[1] in uniqueSet:
+						relnCount += 1
 						uniqueSet.add(reln[1])
 						status = getStatus(reln[0])
 						mimReln = "%s|OMIM|%s|%s|causes_phenotype\n" %(obj.gene_id, reln[1], status)
-						mimRelnOutFile.write(mimReln)	
+						mimRelnOutFile.write(mimReln)
+	print "\n\t\t\t\t\t\t\t%s OMIM gene nodes have been created..." %locale.format('%d', nodeCount, True)
+	print "\n\t\t\t\t\t\t\t%s OMIM relationships have been created...\n" %locale.format('%d', relnCount, True)
+
 
 def getStatus(text):
 	""" Hard codes and returns text as string according to OMIM symbols """
@@ -76,7 +83,9 @@ def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile):
 				disorderMap[disorderID]["synonyms"].add(text)
 	for k, v in disorderMap.iteritems():
 		mimDisorderNode = "%s|OMIM|%s|%s|%s|Phenotype\n" %(k, v["text"], v["pheneKey"], ";".join(v["synonyms"]))
-		mimDisorderNodeOutFile.write(mimDisorderNode)			
+		mimDisorderNodeOutFile.write(mimDisorderNode)
+	print "\n\t\t\t\t\t\t%s OMIM disorder/phenotype nodes have been created..." %locale.format('%d', len(disorderMap), True)
+			
 
 def getPheneKey(pheneKey):
 	""" Hard codes text as string according to the disorder's phene mapping key """
@@ -90,19 +99,19 @@ def getPheneKey(pheneKey):
 		return "Contiguous gene deletion or duplication syndrome. Multiple genes are deleted or duplicated."
 
 def getDisorderInfo(disorder, geneMIM):
-	""" Searches for disorder MIM for disorder MIM node. Uses gene MIM if not found. Rturns tuple of text, MIM and phene key """
+	""" Searches for disorder MIM for disorder MIM node. Uses gene MIM if not found. Returns tuple of text, MIM and phene key """
 	found_id = "\d{6}"
 	disorderInfo = ""
 	found = re.search(found_id, disorder)
 	split = disorder.rsplit(" ", 2)
 	if found: # contain disorder MIMs
 		disorderInfo = (split[0], ("MIM:" + split[1]), split[2])
-	else: # does not contain disorder MIMs
+	else: # does not contain disorder MIMs, use gene MIM
 		disorderInfo = ((split[0] + " " + split[1]), ("MIM:" + geneMIM + "p"), split[-1])
 	return disorderInfo
 
 def MIMGeneReln(MIMFilePath, mimGeneRelnOutFile):
-	""" """
+	""" Adds MIM --> Entrez gene relationships to unique set, writes to mimGeneRelnOutFile """
 	relnSet2 = set()
 	with open(MIMFilePath, 'ru') as inFile:
 		for line in inFile:
@@ -117,9 +126,12 @@ def MIMGeneReln(MIMFilePath, mimGeneRelnOutFile):
 				elif obj.type == "gene":
 					myKey = (obj.gene_id, "ncbi_entrez_gene", obj.MIM_id, "belongs_to")
 				relnSet2.add(myKey)
+	relnCount = 0
 	for reln in relnSet2:
+		relnCount += 1
 		mimGeneRelnOutFile.write("|".join(reln) + "\n")
-	print len(relnSet2)
+	print "\n\t\t\t\t\t  %s OMIM --> NCBI Entrez Gene relationships have been created...\n" %locale.format('%d', relnCount, True)
+
 
 #################################################################################################################
 #########################################   GENERAL   ###########################################################
@@ -147,7 +159,7 @@ def howToRun():
 	print "\n\t\t * Example top directory: /Users/username/KnowledgeBasedDiscovery/"
 	print "\n\t\t * Top directory structure: \n\t\t\t * /Users/username/KnowledgeBasedDiscovery/<subdir>/<files>"
 	print "\t\t\t\t * <subdir> : OMIM/"
-	print "\t\t\t\t * <subfiles> : *"
+	print "\t\t\t\t * <subfiles> : *\n"
 	sys.exit(2) 
 
 
@@ -179,7 +191,6 @@ def main(argv):
 			mimRelnOutFile = open((outPath + 'mimRelnOut.csv'), 'w')
 			mimGeneRelnOutFile = open((outPath + 'mimGeneRelnOut.csv'), 'w')
 
-
 			mimGeneNodeOutFile.write("Source_ID:ID|Source|Gene_Symbol:string[]|Cytogenetic_Location|Name|:LABEL\n")
 			mimDisorderNodeOutFile.write("Source_ID:ID|Source|Disorder|Status|Synonyms:string[]|:LABEL\n")
 			mimRelnOutFile.write(":START_ID|Source|:END_ID|Status|:TYPE\n")
@@ -195,15 +206,18 @@ def main(argv):
 						MIMFilePath =  os.path.join(root, MIMFile)
 
 						if MIMFilePath.endswith("geneMap2.txt"):
-							print "\n\t\t\t\t%s" %MIMFilePath
+							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath
 							writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile)
 						if MIMFilePath.endswith("morbidmap"):
-							print "\n\t\t\t\t%s" %MIMFilePath
+							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath
 							writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile)
 						if MIMFilePath.endswith("mim2gene.txt"):
-							print "\n\t\t\t\t%s" %MIMFilePath							
+							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath							
 							MIMGeneReln(MIMFilePath, mimGeneRelnOutFile)
 
+			endTime = time.clock()
+			duration = endTime - startTime
+			print "\n\t\t\t\t\tIt took %s seconds to create all NCBI Taxonomy nodes and relationships\n" %duration
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

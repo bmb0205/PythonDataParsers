@@ -129,12 +129,12 @@ def main(argv):
 	try:
 		opts, args = getopt.getopt(argv,"hp:",["help","dirPath="])
 		if len(argv) == 0:
-			getHelp()
+			howToRun()
 	except getopt.GetoptError:
-		getHelp()
+		howToRun()
 	for opt, arg in opts:
 		if opt == '-h':
-			getHelp()
+			howToRun()
 		elif opt in ("-p", "--dirPath"):
 			if not arg.endswith("/"):
 				arg = arg + "/"

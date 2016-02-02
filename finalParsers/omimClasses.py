@@ -65,10 +65,3 @@ class MIMToGene(object):
 		self.MIM_id = "MIM:" + columns[0].strip()
 		self.type = columns[1].strip()
 		self.gene_id = "ENTREZ:" + columns[2].strip()
-	# 	self.gene_symbol = columns[3].strip()
-
-	# def getGeneID(self):
-	# 	if not self.gene_id.endswith("-"):
-	# 		return self.gene_id
-	# 	else:
-	# 		return ""
