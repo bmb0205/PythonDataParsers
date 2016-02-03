@@ -19,6 +19,7 @@ def parseMeSH(meshFilePath, count, meshNodeOutFile):
 	Creates defaultdict of MeSH block attributes.
 	Feeds dict and outfile into writeMeSHNodes() function
 	"""
+	relnDict = dict()
 	with open(meshFilePath, 'ru') as meshFile:
 		count = 0
 		for block in getBlock(meshFile): # genrator object
@@ -50,8 +51,12 @@ def parseMeSH(meshFilePath, count, meshNodeOutFile):
 							headerIndex = header.index("d")
 							semanticRelationship = split_value[headerIndex]
 							myDict["semantic_relationship"].add(semanticRelationship)
+			unique = "".join(myDict['unique_id'])
+			treeNums = myDict['mesh_tree_number']
+			if len(treeNums) != 0:
+				relnDict[unique] = treeNums
 			writeMeSHNodes(myDict, meshNodeOutFile)
-	return count
+	return count, relnDict
 
 			# synonyms include: MH, ENTRY(take first field as synonym(a)...also take semantic relation(d), SY, NM, RN
 			# mesh tree number MN for relationships, download MeSH tree
@@ -80,8 +85,35 @@ def writeMeSHNodes(myDict, meshNodeOutFile):
 	node = "%s|MeSH|%s|%s|%s|%s|MedicalHeading\n" %(";".join(myDict["unique_id"]), ";".join(myDict["term"]), ";".join(myDict["synonyms"]), ";".join(myDict["semantic_type"]), ";".join(myDict["mesh_tree_number"]))
 	meshNodeOutFile.write(node)
 
-# def writeMeSHRelationships
-# need tree map for it
+def parseTree(meshFilePath, myDict, meshRelnOutFile):
+	""" Parses MeSH Tree for relationships """
+	treeMap = defaultdict(set)
+	aList = list()
+	aMap = dict()
+	with open(meshFilePath, 'rU') as inFile:
+		for line in inFile:
+			heading, treeNumber = line.strip().split(';')
+			if treeNumber.startswith('A'):
+				aMap[treeNumber] = heading
+				treeMap['A'].add((heading, treeNumber))
+				aList.append(treeNumber)
+			elif treeNumber.startswith('B'):
+				treeMap['B'].add((heading, treeNumber))
+	# for item in myDict.items():
+	# 	print item
+	# aList.sort(key = len)
+	# for item in aList:
+	# 	itemType = "Anatomy"
+		# if item.startswith('A01'):
+		# 	print item, '\t', itemType, '\t', aMap[item]
+	# for k, v in treeMap.iteritems():
+	# 	print k, '\n' # "A"
+	# 	for k1, k2 in v:
+	# 		if k2 == 'A01':
+	# 			print "Top node: ", k2, "  ", k1
+	# 		elif k2.startswith('A01.'):
+	# 			print "\t", k2, "  ", k1
+
 
 
 ##################################################################################################################
@@ -137,7 +169,9 @@ def main(argv):
 			outPath = createOutDirectory(topDir)
 
 			meshNodeOutFile = open((outPath + 'meshNodeOut.csv'), 'w')
+			meshRelnOutFile = open((outPath + 'meshRelnOut.csv'), 'w')
 			meshNodeOutFile.write("source_id:ID|source|term|synonyms:string[]|semantic_type:string[]|mesh_tree_number|:LABEL\n")
+			# meshRelnOutFile.write()
 
 			for root, dirs, files in os.walk(topDir):
 
@@ -148,16 +182,23 @@ def main(argv):
 					startTime = time.clock()
 					finalCount = 0
 					count = 0
-					for meshFile in files:
+					bigRelnDict = dict()
+					sortedFiles = sorted(files, key=len)
+					for meshFile in sortedFiles:#.sort(key = len):
 						meshFilePath = os.path.join(root, meshFile)
-				 		print "    \t\t\t\t\t\t%s" %meshFilePath
-						count = parseMeSH(meshFilePath, count, meshNodeOutFile)
-						finalCount += count
-						print "\n\t\t\t\t\t\t\t%s nodes have been created from this file\n" %locale.format('%d', count, True)
-					endTime = time.clock()
-					duration = endTime - startTime
-					print "\n\t\t\t\t\t\t    %s total NLM MeSH nodes have been created..." %locale.format('%d', finalCount, True)
-					print "\n\t\t\t\t\t\t  It took %s seconds to create all NLM MeSH nodes\n" %duration
+				 		# print "    \t\t\t\t\t\t%s" %meshFilePath
+				 		if not meshFilePath.endswith("mtrees2015.bin"):
+							count, relnDict = parseMeSH(meshFilePath, count, meshNodeOutFile)
+							bigRelnDict.update(relnDict)
+							finalCount += count
+						else:
+							parseTree(meshFilePath, bigRelnDict, meshRelnOutFile)
+
+						# print "\n\t\t\t\t\t\t\t%s nodes have been created from this file\n" %locale.format('%d', count, True)
+					# endTime = time.clock()
+					# duration = endTime - startTime
+					# print "\n\t\t\t\t\t\t    %s total NLM MeSH nodes have been created..." %locale.format('%d', finalCount, True)
+					# print "\n\t\t\t\t\t\t  It took %s seconds to create all NLM MeSH nodes\n" %duration
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
