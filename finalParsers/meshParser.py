@@ -53,9 +53,16 @@ def parseMeSH(meshFilePath, count, meshNodeOutFile):
 							myDict["semantic_relationship"].add(semanticRelationship)
 			unique = "".join(myDict['unique_id'])
 			treeNums = myDict['mesh_tree_number']
+			
 			if len(treeNums) != 0:
-				relnDict[unique] = treeNums
+				for tree in treeNums:
+					relnDict[tree] = unique
+
+
+			# if len(treeNums) != 0:
+			# 	relnDict[unique] = treeNums
 			writeMeSHNodes(myDict, meshNodeOutFile)
+	print 'click', len(relnDict)
 	return count, relnDict
 
 			# synonyms include: MH, ENTRY(take first field as synonym(a)...also take semantic relation(d), SY, NM, RN
@@ -85,34 +92,37 @@ def writeMeSHNodes(myDict, meshNodeOutFile):
 	node = "%s|MeSH|%s|%s|%s|%s|MedicalHeading\n" %(";".join(myDict["unique_id"]), ";".join(myDict["term"]), ";".join(myDict["synonyms"]), ";".join(myDict["semantic_type"]), ";".join(myDict["mesh_tree_number"]))
 	meshNodeOutFile.write(node)
 
-def parseTree(meshFilePath, myDict, meshRelnOutFile):
+def parseTree(meshFilePath, bigRelnDict, meshRelnOutFile):
 	""" Parses MeSH Tree for relationships """
-	treeMap = defaultdict(set)
-	aList = list()
-	aMap = dict()
+	uniqueSet = set()
+	# print bigRelnDict
 	with open(meshFilePath, 'rU') as inFile:
 		for line in inFile:
-			heading, treeNumber = line.strip().split(';')
-			if treeNumber.startswith('A'):
-				aMap[treeNumber] = heading
-				treeMap['A'].add((heading, treeNumber))
-				aList.append(treeNumber)
-			elif treeNumber.startswith('B'):
-				treeMap['B'].add((heading, treeNumber))
-	# for item in myDict.items():
-	# 	print item
-	# aList.sort(key = len)
-	# for item in aList:
-	# 	itemType = "Anatomy"
-		# if item.startswith('A01'):
-		# 	print item, '\t', itemType, '\t', aMap[item]
-	# for k, v in treeMap.iteritems():
-	# 	print k, '\n' # "A"
-	# 	for k1, k2 in v:
-	# 		if k2 == 'A01':
-	# 			print "Top node: ", k2, "  ", k1
-	# 		elif k2.startswith('A01.'):
-	# 			print "\t", k2, "  ", k1
+			heading, treeNumStart = line.strip().split(';')
+
+			if not len(treeNumStart) == 3 and treeNumStart.startswith('A01'):
+				thing = treeNumStart.split('.')
+				print 'new thing\n'
+				while len(thing) > 1:
+					print treeNumStart
+					treeNumEnd = treeNumStart[:-4]
+					typeLetter = treeNumStart[0]
+					relnType = getType(typeLetter)
+
+					relnString = "%s|MeSH|%s|%s" %(bigRelnDict[treeNumStart], bigRelnDict[treeNumEnd], relnType)
+					treeNumStart = treeNumEnd
+				# print relnString
+				# uniqueSet.add(relnString)
+	print len(uniqueSet)
+
+def getType(typeLetter):
+	typeDict = {'A': 'Anatomy', 'B': 'Organisms', 'C': 'Diseases',
+				'D': 'Chemicals_and_Drugs', 'E': 'Analytical_Diagnostic_and_Therapeutic_Techniques_and_Equipment',
+				'F': 'Psychiatry_and_Psychology', 'G': 'Phenomena_and_Processes', 'H': 'Disciplines_and_Occupations',
+				'I': 'Anthropology_Education_Sociology_and_Agriculture', 'J': 'Technology_Industry_Agriculture',
+				'K': 'Humanities', 'L': 'Information_Science', 'M': 'Named_Groups', 'N': 'Health_Care',
+				'V': 'Publication_Characteristics', 'Z': 'Geographical_Locations'}
+	return typeDict[typeLetter]
 
 
 
