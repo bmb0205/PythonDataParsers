@@ -41,12 +41,12 @@ def writeGeneNodes(geneFilePath, geneNodeOutFile, count):
 			obj = EntrezNode(columns)
 			if not obj.gene_id in geneSet:
 				geneSet.add(obj.gene_id)
-				synList = [obj.getSynonyms(), obj.getSymbolFromNom(), obj.getOtherDesignations(), obj.symbol]
+				synList = [obj.getSynonyms(), obj.getSymbolFromNom(), clean(obj.getOtherDesignations()), clean(obj.symbol)]
 				synList = filter(None, synList)
 				synSet = set(synList)
 				synString = ";".join(synSet)
-				node = "%s|NCBI_Entrez_Gene|%s|%s|Gene\n" %(obj.gene_id, obj.preferred_term, synString)
-				node = clean(node)
+				node = "%s|NCBI_Entrez_Gene|%s|%s|Gene\n" %(obj.gene_id, clean(obj.preferred_term), synString.replace("|", ";"))
+				# node = clean(node)
 				geneNodeOutFile.write(node)
 	print "\t\t\t\t\t\t    %s nodes have been created from this file\n" %locale.format('%d', count, True)
 	return geneSet, count
@@ -149,8 +149,8 @@ def writeGeneMIMReln(relnSet, geneMIMRelnOutFile):
 		count += 1
 		joined = "|".join(reln)
 		joined = joined + "\n"
-		cleaned = clean(joined)
-		geneMIMRelnOutFile.write(cleaned)
+		# cleaned = clean(joined)
+		geneMIMRelnOutFile.write(joined)
 	print "\t\t\t\t%s NCBI Entrez Gene -> MIM relationships have been created from this file." %locale.format('%d', count, True)
 
 
@@ -168,7 +168,7 @@ def createOutDirectory(topDir):
 
 def clean(string):
 	""" cleans lines of any characters that may affect neo4j database creation or import """
-	cleaned = string.replace(";", ",")
+	cleaned = string.replace(";", ",").replace("|", ";")
 	return cleaned
 
 def howToRun():

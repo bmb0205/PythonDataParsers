@@ -142,7 +142,7 @@ def main(argv):
 			nalRoot = topDir + "NAL/"
 
 			nalNodeOutFile.write("Source_ID:ID|Source|Descriptor|Subject_Category|Synonyms:string[]|:LABEL\n")
-			nalRelnOutFile.write(":START_ID|National_Agricultural_Library|:END_ID|:TYPE\n")
+			nalRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
 			print "\n\n\n\t\t\t\t===================  PARSING National Agricultural Library Thesaurus ====================="
 			print "\n\t\t\t\t\t\t\t\t\tProcessing files in:\n\n\t\t\t\t\t\t\t\t    %s\n" % nalRoot
 			print "\n\t\t\t\t\t\t\t\t\t Files processed: "

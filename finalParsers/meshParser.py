@@ -9,10 +9,18 @@ import time
 import re
 from collections import defaultdict
 
+"""
 ##################################################################################################################
-##########################################   MeSH   #########################################################
+################################   Medical Subject Headings (MeSH) Parser  ###############################################
 ##################################################################################################################
 
+Parses MeSH database files for graph database node and relationship creation.
+See howToRun() method for instructions.
+Infile(s): 2015 MeSH Descriptor (d2015.bin), Qualifier (q2015.bin) and Supplementary Concept (c2015.bin) records
+	Souce: https://www.nlm.nih.gov/mesh/download_mesh.html?
+Outfile(s): meshNodeOut.csv, meshRelnOut.csv
+Written by: Brandon Burciaga
+"""
 
 def parseMeSH(meshFilePath, count, meshNodeOutFile):
 	"""
@@ -80,7 +88,6 @@ def getBlock(meshFile):
 			block += [line.strip()]
 	if block:
 		yield block
-			
 
 def writeMeSHNodes(myDict, meshNodeOutFile):
 	"""
@@ -104,6 +111,7 @@ def parseTree(meshFilePath, bigRelnDict, meshRelnOutFile):
 	uniqueSet = set()
 	with open(meshFilePath, 'rU') as inFile:
 		for line in inFile:
+			# print '\n\n'
 			heading, treeNumStart = line.strip().split(';')
 			if not len(treeNumStart) == 3:
 				splitNumbers = treeNumStart.split('.')
@@ -111,10 +119,15 @@ def parseTree(meshFilePath, bigRelnDict, meshRelnOutFile):
 					treeNumEnd = treeNumStart[:-4]
 					typeLetter = treeNumStart[0]
 					relnType = getType(typeLetter)
-					relnString = "%s|MeSH|%s|%s\n" %(bigRelnDict[treeNumStart], bigRelnDict[treeNumEnd], relnType)
+					for i in range(len(splitNumbers)):
+						node1 = ".".join(splitNumbers[0:i])
+						if node1:
+							relnString1 = "%s|MeSH|%s|%s|contains\n" %(bigRelnDict[node1], bigRelnDict[treeNumStart], relnType)
+						 	relnString2 = "%s|MeSH|%s|%s|is_a_part_of\n" %(bigRelnDict[treeNumStart], bigRelnDict[node1], relnType)
+							uniqueSet.add(relnString1)
+							uniqueSet.add(relnString2)
 					del splitNumbers[-1]
 					treeNumStart = treeNumEnd
-					uniqueSet.add(relnString)
 	count = 0
 	for item in uniqueSet:
 		count +=1
@@ -131,12 +144,9 @@ def getType(typeLetter):
 				'V': 'Publication_Characteristics', 'Z': 'Geographical_Locations'}
 	return typeDict[typeLetter]
 
-
-
 ##################################################################################################################
 ##########################################   General   #########################################################
 ##################################################################################################################
-
 
 def createOutDirectory(topDir):
 	""" creates path for out directory and outfiles """
@@ -188,7 +198,7 @@ def main(argv):
 			meshNodeOutFile = open((outPath + 'meshNodeOut.csv'), 'w')
 			meshRelnOutFile = open((outPath + 'meshRelnOut.csv'), 'w')
 			meshNodeOutFile.write("source_id:ID|source|term|synonyms:string[]|semantic_type:string[]|mesh_tree_number|:LABEL\n")
-			# meshRelnOutFile.write()
+			meshRelnOutFile.write(":START_ID|source|:END_ID|Category|:TYPE\n")
 
 			for root, dirs, files in os.walk(topDir):
 

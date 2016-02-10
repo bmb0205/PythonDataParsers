@@ -20,7 +20,8 @@ Parses NCBI Taxonomy database files for graph database node and relationship cre
 See howToRun() method for instructions.
 Infile(s): NCBI Taxonomy (*.dmp) files
 Outfile(s): taxNodeOut.csv, taxRelnOut.csv
-
+Imported modules: taxonomyClasses.py
+Written by: Brandon Burciaga
 """
 
 def parseNodes(taxFilePath, taxMap):
@@ -41,18 +42,15 @@ def parseNames(namesFilePath, taxMap):
 		for line in stream:
 			columns = line.split("|")
 			nameObj = TaxNamesParser(columns)
-			node = nameObj.node
-			term = nameObj.term
-			preferred_term = nameObj.getPreferred()
 			if not nameObj.node in synonymDict:
-				synonymDict[node] = set()
-				synonymDict[node].add(term)
-				synonymDict[node].add(preferred_term)
+				synonymDict[nameObj.node] = set()
+				synonymDict[nameObj.node].add(nameObj.term)
+				synonymDict[nameObj.node].add(nameObj.getPreferred())
 			else:
-				synonymDict[node].add(term)
-				synonymDict[node].add(preferred_term)
-			taxMap[node]["preferred_term"] = preferred_term
-			taxMap[node]["term"] = term
+				synonymDict[nameObj.node].add(nameObj.term)
+				synonymDict[nameObj.node].add(nameObj.getPreferred())
+			taxMap[nameObj.node]["preferred_term"] = nameObj.getPreferred()
+			taxMap[nameObj.node]["term"] = nameObj.term
 		for node, synonyms in synonymDict.iteritems():
 			taxMap[node]["synonyms"] = synonyms
 	return taxMap

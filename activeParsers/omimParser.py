@@ -13,21 +13,24 @@ from omimClasses import MIMToGene
 
 
 """
-Main file parser used to parse and extract data from OMIM database.
-Parsed information is written to pipe delimited .csv outfiles in a directory created by the script.
-See howToRun() method below for help running script.
+##################################################################################################################
+###########################   Online Mendelian Inheritance in Man (OMIM) Parser ###################################
+##################################################################################################################
+
+Parses OMIM database files for graph database node and relationship creation.
+See howToRun() method for instructions.
+Infile(s): geneMap2.txt, mim2gene.txt, morbidmap
+Outfile(s): mimDisorderNodeOut.csv, mimGeneNodeOut.csv, mimRelnOut.csv, mimGeneRelnOut.csv
+Imported modules: omimClasses.py
 Written by: Brandon Burciaga
 """
-
-##################################################################################################################
-#########################################   MIM   ###########################################################
-##################################################################################################################
 
 # 15705 unique gene nodes total
 def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile): # MIM/geneMap2.txt
 	"""	writes MIM gene nodes to mimGeneNodeOutFile, writes MIM relationships to mimRelnOutFile """
 	nodeCount = 0
 	relnCount = 0
+	mySet = set()
 	with open(MIMFilePath, 'ru') as inFile:
 		uniqueSet = set()
 		for line in inFile:
@@ -35,6 +38,7 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile): # MIM/ge
 			columns = line.replace("''", "").replace("'", "prime").split("|")
 			obj = MIMNode(columns)
 			mimGeneNode = "%s|OMIM|%s|%s|%s|Gene\n" %(obj.gene_id, obj.getGeneSymbols(), obj.cytogenetic_location, obj.name)
+			mySet.add(obj.gene_id)
 			mimGeneNodeOutFile.write(mimGeneNode) 
 			if not obj.disorder_info == "": # 4786 genes associated with disorders
 				relnSet = obj.getDisorderInfo()
@@ -47,7 +51,7 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile): # MIM/ge
 						mimRelnOutFile.write(mimReln)
 	print "\n\t\t\t\t\t\t\t%s OMIM gene nodes have been created..." %locale.format('%d', nodeCount, True)
 	print "\n\t\t\t\t\t\t\t%s OMIM relationships have been created...\n" %locale.format('%d', relnCount, True)
-
+	return mySet
 
 def getStatus(text):
 	""" Hard codes and returns text as string according to OMIM symbols """
@@ -63,11 +67,11 @@ def getStatus(text):
 		return ""
 
 # 5870 unique disorder nodes total
-def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile):
+def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile, mySet):
 	""" Constructs and fills map of disorder information for each node, then iterates and writes to mimDisorderNodeOutFile """
 	disorderMap = defaultdict(dict)
+	count = 0
 	with open(MIMFilePath, 'ru') as inFile:
-		count = 0
 		for line in inFile:
 			columns = line.replace("''", "").replace("'", "prime").split("|")
 			geneMIM = columns[2].strip()
@@ -82,11 +86,12 @@ def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile):
 			else:
 				disorderMap[disorderID]["synonyms"].add(text)
 	for k, v in disorderMap.iteritems():
+		if k in mySet:
+			k = k + "p"
 		mimDisorderNode = "%s|OMIM|%s|%s|%s|Phenotype\n" %(k, v["text"], v["pheneKey"], ";".join(v["synonyms"]))
 		mimDisorderNodeOutFile.write(mimDisorderNode)
 	print "\n\t\t\t\t\t\t%s OMIM disorder/phenotype nodes have been created..." %locale.format('%d', len(disorderMap), True)
 			
-
 def getPheneKey(pheneKey):
 	""" Hard codes text as string according to the disorder's phene mapping key """
 	if pheneKey == "1":
@@ -196,6 +201,7 @@ def main(argv):
 			mimRelnOutFile.write(":START_ID|Source|:END_ID|Status|:TYPE\n")
 			mimGeneRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE")
 
+			mySet = set()
 			for root, dirs, files in os.walk(topDir):
 				
 				""" OMIM """
@@ -207,10 +213,10 @@ def main(argv):
 
 						if MIMFilePath.endswith("geneMap2.txt"):
 							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath
-							writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile)
+							mySet = writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile)
 						if MIMFilePath.endswith("morbidmap"):
 							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath
-							writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile)
+							writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile, mySet)
 						if MIMFilePath.endswith("mim2gene.txt"):
 							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath							
 							MIMGeneReln(MIMFilePath, mimGeneRelnOutFile)
@@ -221,3 +227,8 @@ def main(argv):
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
+
+
+
+
+

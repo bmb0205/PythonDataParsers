@@ -47,11 +47,15 @@ class MIMNode(object):
 						pheneKey = split[-1]
 						relnSet.add((text, disorderMIM, pheneKey))
 				else: # has disorder/phene MIM available
-					relnSet.add((split[0].rstrip(","), "MIM:" + split[1], split[2]))
+					if self.gene_id == ("MIM:" + split[1]):
+						relnSet.add((split[0].rstrip(","), ("MIM:" + split[1] + 'p'), split[2]))
+					else:
+						relnSet.add((split[0].rstrip(","), "MIM:" + split[1], split[2]))
 		else: # one disorder
 			found = re.search(found_id, self.disorder_info)
 			split = self.disorder_info.rsplit(" ", 2)
 			if found: # contain disorder MIMs
+				# print split
 				relnSet.add((split[0], ("MIM:" + split[1]), split[2]))
 			else: # does not contain disorder MIMs
 				relnSet.add(((split[0] + " " + split[1]), (self.gene_id + "p"), split[-1]))
