@@ -17,11 +17,19 @@ from collections import defaultdict
 def parseMeSH(meshFilePath, count, meshNodeOutFile):
 	"""
 	Creates defaultdict of MeSH block attributes.
-	Feeds dict and outfile into writeMeSHNodes() function
+	Feeds dict and outfile into writeMeSHNodes() function.
+	
+	Attributes:
+	MH, NM, SH = MeSH Heading, Name of substance, Subheading (preferred term)
+	MN = MeSH tree Number for relationship mapping
+	UI = Unique Identifier
+	RN = CAS Registry/EC Number
+	ST = Semantic Type 
+	ENTRY, PRINT ENTRY, SY = Synonyms
 	"""
 	relnDict = dict()
+	count = 0
 	with open(meshFilePath, 'ru') as meshFile:
-		count = 0
 		for block in getBlock(meshFile): # genrator object
 			count += 1
 			block = block[1:-1]
@@ -53,20 +61,11 @@ def parseMeSH(meshFilePath, count, meshNodeOutFile):
 							myDict["semantic_relationship"].add(semanticRelationship)
 			unique = "".join(myDict['unique_id'])
 			treeNums = myDict['mesh_tree_number']
-			
-			if len(treeNums) != 0:
+			if treeNums:
 				for tree in treeNums:
 					relnDict[tree] = unique
-
-
-			# if len(treeNums) != 0:
-			# 	relnDict[unique] = treeNums
 			writeMeSHNodes(myDict, meshNodeOutFile)
-	print 'click', len(relnDict)
 	return count, relnDict
-
-			# synonyms include: MH, ENTRY(take first field as synonym(a)...also take semantic relation(d), SY, NM, RN
-			# mesh tree number MN for relationships, download MeSH tree
 
 def getBlock(meshFile):
 	""" Yields generator object for each new entry """
@@ -84,38 +83,46 @@ def getBlock(meshFile):
 			
 
 def writeMeSHNodes(myDict, meshNodeOutFile):
-	"""  """
+	"""
+	Checks myDict for keys in keyList, if not there, sets default to empty string.
+	Writes nodes to meshNodeOutFile
+	"""
 	keyList = ["unique_id", "term", "synonyms", "semantic_type", "mesh_tree_number"]
 	for item in keyList:
 		if not item in myDict.keys():
 			myDict[item] = ""
-	node = "%s|MeSH|%s|%s|%s|%s|MedicalHeading\n" %(";".join(myDict["unique_id"]), ";".join(myDict["term"]), ";".join(myDict["synonyms"]), ";".join(myDict["semantic_type"]), ";".join(myDict["mesh_tree_number"]))
+	node = "%s|MeSH|%s|%s|%s|%s|MedicalHeading\n" %(";".join(myDict["unique_id"]), ";".join(myDict["term"]), 
+		";".join(myDict["synonyms"]), ";".join(myDict["semantic_type"]), ";".join(myDict["mesh_tree_number"]))
 	meshNodeOutFile.write(node)
 
 def parseTree(meshFilePath, bigRelnDict, meshRelnOutFile):
-	""" Parses MeSH Tree for relationships """
+	"""
+	Parses MeSH Tree and creates a set of unique relationships.
+	Uses bigRelnDict to map mesh tree numbers back to unique node IDs.
+	Writes relationship from unique set. 
+	"""
 	uniqueSet = set()
-	# print bigRelnDict
 	with open(meshFilePath, 'rU') as inFile:
 		for line in inFile:
 			heading, treeNumStart = line.strip().split(';')
-
-			if not len(treeNumStart) == 3 and treeNumStart.startswith('A01'):
-				thing = treeNumStart.split('.')
-				print 'new thing\n'
-				while len(thing) > 1:
-					print treeNumStart
+			if not len(treeNumStart) == 3:
+				splitNumbers = treeNumStart.split('.')
+				while len(splitNumbers) > 1:
 					treeNumEnd = treeNumStart[:-4]
 					typeLetter = treeNumStart[0]
 					relnType = getType(typeLetter)
-
-					relnString = "%s|MeSH|%s|%s" %(bigRelnDict[treeNumStart], bigRelnDict[treeNumEnd], relnType)
+					relnString = "%s|MeSH|%s|%s\n" %(bigRelnDict[treeNumStart], bigRelnDict[treeNumEnd], relnType)
+					del splitNumbers[-1]
 					treeNumStart = treeNumEnd
-				# print relnString
-				# uniqueSet.add(relnString)
-	print len(uniqueSet)
+					uniqueSet.add(relnString)
+	count = 0
+	for item in uniqueSet:
+		count +=1
+		meshRelnOutFile.write(item)
+	return count
 
 def getType(typeLetter):
+	""" Returns value (relationship type) for passed in typeLetter key """
 	typeDict = {'A': 'Anatomy', 'B': 'Organisms', 'C': 'Diseases',
 				'D': 'Chemicals_and_Drugs', 'E': 'Analytical_Diagnostic_and_Therapeutic_Techniques_and_Equipment',
 				'F': 'Psychiatry_and_Psychology', 'G': 'Phenomena_and_Processes', 'H': 'Disciplines_and_Occupations',
@@ -196,19 +203,20 @@ def main(argv):
 					sortedFiles = sorted(files, key=len)
 					for meshFile in sortedFiles:#.sort(key = len):
 						meshFilePath = os.path.join(root, meshFile)
-				 		# print "    \t\t\t\t\t\t%s" %meshFilePath
+				 		print "\t\t\t\t\t\t\t%s" %meshFilePath
 				 		if not meshFilePath.endswith("mtrees2015.bin"):
 							count, relnDict = parseMeSH(meshFilePath, count, meshNodeOutFile)
 							bigRelnDict.update(relnDict)
 							finalCount += count
+							print "\t\t\t\t\t\t   %s nodes have been created from this file\n" %locale.format('%d', count, True)
 						else:
-							parseTree(meshFilePath, bigRelnDict, meshRelnOutFile)
+							relnCount = parseTree(meshFilePath, bigRelnDict, meshRelnOutFile)
+							print "\t\t\t\t\t\t  %s relationships have been created from this file\n" %locale.format('%d', relnCount, True)
 
-						# print "\n\t\t\t\t\t\t\t%s nodes have been created from this file\n" %locale.format('%d', count, True)
-					# endTime = time.clock()
-					# duration = endTime - startTime
-					# print "\n\t\t\t\t\t\t    %s total NLM MeSH nodes have been created..." %locale.format('%d', finalCount, True)
-					# print "\n\t\t\t\t\t\t  It took %s seconds to create all NLM MeSH nodes\n" %duration
+					endTime = time.clock()
+					duration = endTime - startTime
+					print "\n\t\t\t\t    %s total NLM MeSH nodes and %s total relationships have been created..." %(locale.format('%d', finalCount, True), locale.format('%d', relnCount, True))
+					print "\n\t\t\t\t\t  It took %s seconds to create all NLM MeSH nodes and relationships \n" %duration
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
