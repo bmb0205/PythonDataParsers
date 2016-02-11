@@ -38,6 +38,7 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile): # MIM/ge
 			mimGeneNodeOutFile.write(mimGeneNode) 
 			if not obj.disorder_info == "": # 4786 genes associated with disorders
 				relnSet = obj.getDisorderInfo()
+				# print obj.gene_id, '\n', relnSet, '\n\n'
 				for reln in relnSet:
 					if not reln[1] in uniqueSet:
 						relnCount += 1
@@ -72,20 +73,22 @@ def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile):
 			columns = line.replace("''", "").replace("'", "prime").split("|")
 			geneMIM = columns[2].strip()
 			disorderInfo = getDisorderInfo(columns[0].strip(), geneMIM)
+			gene_symbols = columns[1].replace(", ", ";")
 			text = disorderInfo[0].lstrip("{").lstrip("[").lstrip("?").rstrip(",").rstrip("}").rstrip("]")
 			pheneKey = disorderInfo[-1][1:-1]
 			disorderID = disorderInfo[1]
 			if not disorderID in disorderMap.keys():
 				disorderMap[disorderID]["synonyms"] = set()
 				disorderMap[disorderID]["text"] = text
+				disorderMap[disorderID]["gene_symbols"] = set()
 				disorderMap[disorderID]["pheneKey"] = getPheneKey(pheneKey)
 			else:
 				disorderMap[disorderID]["synonyms"].add(text)
+				disorderMap[disorderID]["gene_symbols"].add(gene_symbols)
 	for k, v in disorderMap.iteritems():
-		mimDisorderNode = "%s|OMIM|%s|%s|%s|Phenotype\n" %(k, v["text"], v["pheneKey"], ";".join(v["synonyms"]))
+		mimDisorderNode = "%s|OMIM|%s|%s|%s|%s|Phenotype\n" %(k, v["text"], v["pheneKey"], ";".join(v["gene_symbols"]), ";".join(v["synonyms"]))
 		mimDisorderNodeOutFile.write(mimDisorderNode)
 	print "\n\t\t\t\t\t\t%s OMIM disorder/phenotype nodes have been created..." %locale.format('%d', len(disorderMap), True)
-			
 
 def getPheneKey(pheneKey):
 	""" Hard codes text as string according to the disorder's phene mapping key """
@@ -105,9 +108,15 @@ def getDisorderInfo(disorder, geneMIM):
 	found = re.search(found_id, disorder)
 	split = disorder.rsplit(" ", 2)
 	if found: # contain disorder MIMs
+		# print 'lol', geneMIM, '\t', disorder, '\n'
+		# lol 173335 	{Diabetes mellitus, non-insulin-dependent, susceptibility to}, 125853 (3) 
+
 		disorderInfo = (split[0], ("MIM:" + split[1]), split[2])
 	else: # does not contain disorder MIMs, use gene MIM
+		# print 'lol', geneMIM, '\t', disorder, '\n'
+		# lol 221900 	Retinal nonattachment, nonsyndromic congenital (2) 
 		disorderInfo = ((split[0] + " " + split[1]), ("MIM:" + geneMIM + "p"), split[-1])
+		print geneMIM, '\t', disorderInfo
 	return disorderInfo
 
 def MIMGeneReln(MIMFilePath, mimGeneRelnOutFile):
@@ -192,7 +201,7 @@ def main(argv):
 			mimGeneRelnOutFile = open((outPath + 'mimGeneRelnOut.csv'), 'w')
 
 			mimGeneNodeOutFile.write("Source_ID:ID|Source|Gene_Symbol:string[]|Cytogenetic_Location|Name|:LABEL\n")
-			mimDisorderNodeOutFile.write("Source_ID:ID|Source|Disorder|Status|Synonyms:string[]|:LABEL\n")
+			mimDisorderNodeOutFile.write("Source_ID:ID|Source|Disorder|Status|Gene_symbol:string[]|Synonyms:string[]|:LABEL\n")
 			mimRelnOutFile.write(":START_ID|Source|:END_ID|Status|:TYPE\n")
 			mimGeneRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE")
 

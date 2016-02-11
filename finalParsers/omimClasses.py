@@ -31,12 +31,20 @@ class MIMNode(object):
 		found_id = "\d{6}"
 		found = re.search(splitter, self.disorder_info)
 		relnSet = set()
+
 		if found: # multiple associated disorders
 			disorders = re.split("; ", self.disorder_info)
 			for dis in disorders:
 				split = dis.rsplit(" ", 2)
 				hasID = re.search(found_id, split[1])
-				if not hasID: # missing disorder MIM, so gene MIM == disorder/phene MIM
+				if not hasID: # missing disorder MIM, so gene MIM == disorder/phene MIM + 'p'
+
+					# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
+					# lol MIM:600020 	Neurofibrosarcoma (3); {Prostate cancer, susceptibility to}, 176807 (3) 
+
+					# MIM:600020 	set([('Neurofibrosarcoma', 'MIM:600020p', '(3)'), ('{Prostate cancer, susceptibility to}', 'MIM:176807', '(3)')]) 
+
+
 					text = " ".join(split[:-1]).rstrip(",")
 					if not ")" in split[-1]: # missing phene key in this one instance, due to OMIM error. Hardcode "(3)"
 						disorderMIM = "MIM:" + split[-1] + "p"
@@ -47,13 +55,32 @@ class MIMNode(object):
 						pheneKey = split[-1]
 						relnSet.add((text, disorderMIM, pheneKey))
 				else: # has disorder/phene MIM available
+
+					# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
+					# lol MIM:111740 	[Blood group, Ss] (3); {Malaria, resistance to}, 611162 (3) 
+
+					# MIM:111740 	set([('[Blood group, Ss]', 'MIM:111740p', '(3)'), ('{Malaria, resistance to}', 'MIM:611162', '(3)')]) 
+
+
 					relnSet.add((split[0].rstrip(","), "MIM:" + split[1], split[2]))
 		else: # one disorder
 			found = re.search(found_id, self.disorder_info)
 			split = self.disorder_info.rsplit(" ", 2)
 			if found: # contain disorder MIMs
+
+				# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
+				# lol MIM:603785 	Hydrocephalus, nonsyndromic, autosomal recessive 2, 615219 (3) 
+
+				# MIM:603785 	set([('Hydrocephalus, nonsyndromic, autosomal recessive 2,', 'MIM:615219', '(3)')]) 
+
 				relnSet.add((split[0], ("MIM:" + split[1]), split[2]))
 			else: # does not contain disorder MIMs
+
+				# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
+				# lol MIM:608687 	Spinocerebellar ataxia 20 (4) 
+
+				# MIM:608687 	set([('Spinocerebellar ataxia 20', 'MIM:608687p', '(4)')]) 
+
 				relnSet.add(((split[0] + " " + split[1]), (self.gene_id + "p"), split[-1]))
 		return relnSet
 

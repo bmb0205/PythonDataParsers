@@ -42,6 +42,7 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimRelnOutFile): # MIM/ge
 			mimGeneNodeOutFile.write(mimGeneNode) 
 			if not obj.disorder_info == "": # 4786 genes associated with disorders
 				relnSet = obj.getDisorderInfo()
+				print relnSet
 				for reln in relnSet:
 					if not reln[1] in uniqueSet:
 						relnCount += 1
