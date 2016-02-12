@@ -8,6 +8,7 @@ import locale
 import time
 import re
 from collections import defaultdict
+from operator import itemgetter
 from omimClasses import MIMNode
 from omimClasses import MIMToGene
 from omimClasses import DisorderNode
@@ -31,6 +32,7 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimGeneRelnOutFile): # MI
 	uniqueSet = set()
 	nodeSet = set()
 	nodeMap = dict()
+	count = 0
 	with open(MIMFilePath, 'ru') as inFile:
 		for line in inFile:
 			nodeCount += 1
@@ -39,15 +41,31 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimGeneRelnOutFile): # MI
 			mimGeneNode = "%s|OMIM|%s|%s|%s|Gene\n" %(obj.gene_id, obj.getGeneSymbols(), obj.cytogenetic_location, obj.name)
 			mimGeneNodeOutFile.write(mimGeneNode)
 			nodeMap[obj.gene_id] = obj
+			# print vars(obj)
 			nodeSet.add(obj.gene_id)
 			if not obj.disorder_info == "": # 4786 genes associated with disorders
 				relnSet = obj.getDisorderInfo()
-				print '\n', obj.gene_id
+				# print '\n', obj.gene_id
 				# obj.getDisorderInfo()
 				# print obj.gene_id, relnSet, '\n'
 				for reln in relnSet:
-					print 'lol', reln
-			# 		if not reln[1] in uniqueSet:
+					myTup = (obj.gene_id, reln[2], reln[1])
+					# print myTup
+					if not myTup in uniqueSet:
+						uniqueSet.add(myTup)
+					else:
+						# print 'dup', myTup, line, '\n'
+						count += 1
+					# # print 'lol', reln
+		 		# 	status = getStatus(reln[0])
+		 		# 	uniqueSet.add(myTup) # (geneMIM, pheneKey, pheneMIM)
+					# mimGeneReln = "%s|OMIM|%s|%s|causes_phenotype\n" %(obj.gene_id, reln[1], status)
+		 		# 	mimGeneRelnOutFile.write(mimGeneReln)
+	print len(nodeMap), len(uniqueSet), '\n\n'
+
+
+
+					# if not reln[1] in uniqueSet:
 			# 			relnCount += 1
 			# 			uniqueSet.add(reln[1])
 			# 			# print reln
@@ -61,7 +79,7 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimGeneRelnOutFile): # MI
 			# 	continue
 	print "\n\t\t\t\t\t\t\t%s OMIM gene nodes have been created..." %locale.format('%d', nodeCount, True)
 	print "\n\t\t\t\t\t\t\t%s OMIM relationships have been created...\n" %locale.format('%d', relnCount, True)
-	return nodeMap, nodeSet
+	return nodeMap, nodeSet, uniqueSet
 
 def getStatus(text):
 	""" Hard codes and returns text as string according to OMIM symbols """
@@ -77,10 +95,11 @@ def getStatus(text):
 		return ""
 
 # 5870 unique disorder nodes total
-def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile, mimDisorderRelnOutFile, nodeMap, nodeSet):
+def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile, mimDisorderRelnOutFile, nodeMap, nodeSet, uniqueSet):
 	""" Constructs and fills map of disorder information for each node, then iterates and writes to mimDisorderNodeOutFile """
-	disorderMap = defaultdict(dict)
-	mySet = set()
+	disorderMap = defaultdict(set)
+	# mySet = set()
+	count = 0
 
 
 	# for k, v in nodeMap.iteritems():
@@ -97,12 +116,51 @@ def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile, mimDisorderRelnOu
 	##### have nodeMap genenodeid : geneNodeObj
 		# print attr['name'], '\t', attr['disorder_info']
 	with open(MIMFilePath, 'ru') as inFile:
-		count = 0
+		# print len(uniqueSet) 6657
 		for line in inFile:
-			# print '\n', line
 			columns = line.replace("''", "").replace("'", "prime").split("|")
-			# print columns
 			disObj = DisorderNode(columns)
+			myTup = (disObj.disorderID, disObj.pheneKey, disObj.geneMIM) # reln
+			disorderMap[disObj.disorderID].add(disObj)
+	
+	for k, v in disorderMap.iteritems():
+		myList = list()
+		synonymSet = set()
+		print '\n\n', k
+		if len(v) > 1:
+			for item in v:
+				textPhene = (item.pheneKey, item.text)
+				if not textPhene in myList:
+					myList.append(textPhene)
+			sortedList = sorted(myList, key = itemgetter(0))
+			if sortedList:
+				text = sortedList[-1][1]
+				pheneKey = getPheneKey(sortedList[-1][0])
+				other = sortedList[:-1]
+				for item in other:
+					synonymSet.add(item[1])
+				# print text, '\n', ";".join(synonymSet)
+				mimDisorderNode = "%s|OMIM|%s|%s|Phenotype\n" %(k, text, ";".join(v["synonyms"]))
+				mimDisorderNodeOutFile.write(mimDisorderNode)
+		else:
+			print v
+			# mimDisorderNode = "%s|OMIM|%s|%s|Phenotype\n" %(k, (";".join(v)).text, "")
+			# mimDisorderNodeOutFile.write(mimDisorderNode)
+
+
+	# print count
+
+	# for k, v in disorderMap.iteritems():
+	# 	newSet = set()
+	# 	print '\n\n', k
+	# 	for item in v:
+	# 		newSet.add(item[-1])
+	# 	if len(newSet) > 1:
+	# 		for item in v:
+	# 			print item
+
+
+			# print vars(disObj)['disorderID'], vars(disObj), '\n'
 			# if disObj.disorderID in nodeMap.keys():# or (disObj.disorderID + 'p') in nodeMap.keys():
 			# 	print disObj.disorderID, '\n', vars(disObj), '\n', vars(nodeMap[disObj.disorderID]), '\n\n'
 			# alt = disObj.disorderID + 'p'
@@ -159,7 +217,7 @@ def writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile, mimDisorderRelnOu
 # 		# if len(v['synonyms']) != 0:
 # 		print k, v
 # """
-	print len(nodeMap)
+	# print len(nodeMap)
 	# for k, v in nodeMap.iteritems():
 	# 	print k, vars(v), '\n'
 	# 	if not k in disorderMap.keys():
@@ -304,7 +362,7 @@ def main(argv):
 			mimEntrezRelnOutFile = open((outPath + 'mimEntrezRelnOut.csv'), 'w')
 
 			mimGeneNodeOutFile.write("Source_ID:ID|Source|Gene_Symbol:string[]|Cytogenetic_Location|Name|:LABEL\n")
-			mimDisorderNodeOutFile.write("Source_ID:ID|Source|Disorder|Status|Synonyms:string[]|:LABEL\n")
+			mimDisorderNodeOutFile.write("Source_ID:ID|Source|Disorder|Synonyms:string[]|:LABEL\n")
 			
 			mimGeneRelnOutFile.write(":START_ID|Source|:END_ID|Status|:TYPE\n")
 			mimDisorderRelnOutFile.write(":START_ID|Source|:END_ID|Status|:TYPE\n")
@@ -323,10 +381,10 @@ def main(argv):
 
 						if MIMFilePath.endswith("geneMap2.txt"):
 							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath
-							nodeMap, nodeSet = writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimGeneRelnOutFile)
+							nodeMap, nodeSet, uniqueSet= writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimGeneRelnOutFile)
 						if MIMFilePath.endswith("morbidmap"):
 							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath
-							writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile, mimDisorderRelnOutFile, nodeMap, nodeSet)
+							writeMIMdisorderNodes(MIMFilePath, mimDisorderNodeOutFile, mimDisorderRelnOutFile, nodeMap, nodeSet, uniqueSet)
 						if MIMFilePath.endswith("mim2gene.txt"):
 							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath							
 							MIMGeneReln(MIMFilePath, mimEntrezRelnOutFile)

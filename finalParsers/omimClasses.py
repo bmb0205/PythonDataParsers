@@ -57,7 +57,7 @@ class MIMNode(object):
 						relnSet.add((text, disorderMIM, pheneKey))
 				
 				else: # has disorder/phene MIM available
-				
+
 					# print split, '\n', self.disorder_info, '\n\n'
 					# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
 					text = split[0].rstrip(",")
@@ -101,7 +101,7 @@ class DisorderNode(object):
 	""" """
 	def __init__(self, columns):
 		self.columns = columns
-		self.geneMIM = columns[2].strip()
+		self.geneMIM = "MIM:" + columns[2].strip()
 		self.disorderInfo = getDisorderInfo(columns[0].strip(), self.geneMIM)
 		self.text = self.disorderInfo[0].lstrip("{").lstrip("[").lstrip("?").rstrip(",").rstrip("}").rstrip("]")
 		self.pheneKey = self.disorderInfo[-1][1:-1]
@@ -116,7 +116,7 @@ def getDisorderInfo(disorder, geneMIM):
 	found = re.search(found_id, disorder)
 	split = disorder.rsplit(" ", 2)
 	if found: # contain disorder MIMs
-		disorderInfo = (split[0], ("MIM:" + split[1]), split[2])
+		disorderInfo = (split[0], ("MIM:" + split[1] + 'p'), split[2])
 	else: # does not contain disorder MIMs, use gene MIM + 'p'
-		disorderInfo = ((split[0] + " " + split[1]), ("MIM:" + geneMIM + "p"), split[-1])
+		disorderInfo = ((split[0] + " " + split[1]), (geneMIM + "p"), split[-1])
 	return disorderInfo
