@@ -42,17 +42,23 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile, mimGeneRelnOutFile): # MI
 			nodeSet.add(obj.gene_id)
 			if not obj.disorder_info == "": # 4786 genes associated with disorders
 				relnSet = obj.getDisorderInfo()
+				print '\n', obj.gene_id
+				# obj.getDisorderInfo()
+				# print obj.gene_id, relnSet, '\n'
 				for reln in relnSet:
-					if not reln[1] in uniqueSet:
-						relnCount += 1
-						uniqueSet.add(reln[1])
-						# print reln
-						status = getStatus(reln[0])
-						mimGeneReln = "%s|OMIM|%s|%s|causes_phenotype\n" %(obj.gene_id, reln[1], status)
+					print 'lol', reln
+			# 		if not reln[1] in uniqueSet:
+			# 			relnCount += 1
+			# 			uniqueSet.add(reln[1])
+			# 			# print reln
+			# 			status = getStatus(reln[0])
+			# 			mimGeneReln = "%s|OMIM|%s|%s|causes_phenotype\n" %(obj.gene_id, reln[1], status)
 
-						#!!#!! reverse relationships?
+			# 			#!!#!! reverse relationships?
 
-						mimGeneRelnOutFile.write(mimGeneReln)
+			# 			mimGeneRelnOutFile.write(mimGeneReln)
+			# else:
+			# 	continue
 	print "\n\t\t\t\t\t\t\t%s OMIM gene nodes have been created..." %locale.format('%d', nodeCount, True)
 	print "\n\t\t\t\t\t\t\t%s OMIM relationships have been created...\n" %locale.format('%d', relnCount, True)
 	return nodeMap, nodeSet
