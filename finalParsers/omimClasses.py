@@ -34,38 +34,31 @@ class MIMNode(object):
 		disorderMIM = ''
 		if found: # multiple associated disorders
 			disorders = re.split("; ", self.disorder_info)
-
-
+			# print '\n\n', "|".join(self.columns), '\n'
 			for dis in disorders:
 				split = dis.rsplit(" ", 2)
 				hasID = re.search(found_id, split[1])
-				if not hasID: # missing disorder MIM, so gene MIM == disorder/phene MIM + 'p'
-
-
-
-					# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
-					# lol MIM:600020 	Neurofibrosarcoma (3); {Prostate cancer, susceptibility to}, 176807 (3) 
-
-					# MIM:600020 	set([('Neurofibrosarcoma', 'MIM:600020p', '(3)'), ('{Prostate cancer, susceptibility to}', 'MIM:176807', '(3)')]) 
-					# text = " ".join(split[:-1]).rstrip(",")
+				if not hasID: # multiple disorders, one missing disorder MIM, so gene MIM == disorder/phene MIM + 'p'
+					# print self.gene_id, self.name
+					# print split, '\n'
+					# print "|".join(self.columns)
 					
 					disorderMIM = self.gene_id + "p"
-
-
-					# print disorderMIM, self.columns, '\n'
 					pheneKey = split[-1][1:-1]
 					# print (self.gene_id, pheneKey, disorderMIM)
-					# print split, '\n', self.columns, '\n\n' #self.disorder_info, '\n\n'
 					relnSet.add((self.gene_id, pheneKey, disorderMIM))
 				
-				else: # has disorder/phene MIM available
-					# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
+				else: # multiple disorders, has disorder/phene MIM available
+
 					# text = split[0].rstrip(",")
 					disorderMIM = "MIM:" + split[1]
+					if len(disorderMIM) > 10:
+						disorderMIM = disorderMIM.rstrip(',')
 
-					if self.gene_id == disorderMIM:
-						print 'lolzzz', dis
-
+					
+					# print "|".join(self.columns)
+					# print 'lol', self.gene_id, self.name
+					# print split, '\n'
 					pheneKey = split[2][1:-1]
 					# print (self.gene_id, pheneKey, disorderMIM)
 					
@@ -98,10 +91,10 @@ class MIMNode(object):
 				disorderMIM = self.gene_id + 'p'
 				pheneKey = split[-1][1:-1]
 				relnSet.add((self.gene_id, pheneKey, disorderMIM))
-			if self.gene_id == disorderMIM:
-				print 'lol', self.disorder_info
-		if self.gene_id == disorderMIM:
-			print self.disorder_info
+		# 	if self.gene_id == disorderMIM:
+		# 		print 'lol', self.disorder_info
+		# if self.gene_id == disorderMIM:
+		# 	print self.disorder_info
 		return relnSet
 
 
@@ -119,11 +112,14 @@ class DisorderNode(object):
 		self.columns = columns
 		self.geneMIM = "MIM:" + columns[2].strip()
 		self.disorderInfo = getDisorderNodeInfo(columns[0].strip(), self.geneMIM)
-		self.text = self.disorderInfo[0].lstrip("{").lstrip("[").lstrip("?").rstrip(",").rstrip("}").rstrip("]")
-		self.pheneKey = self.disorderInfo[-1][1:-1]
-		self.disorderID = self.disorderInfo[1]
+		self.text = self.disorderInfo[0].rstrip(',')
+		self.pheneKey = self.disorderInfo[-1][1:-1].strip()
+		self.disorderID = self.disorderInfo[1].strip()
 
 
+	def setDisorderID(self):
+		self.disorderID = self.disorderID + 'p'
+		
 def getDisorderNodeInfo(disorder, geneMIM):
 	""" Searches for disorder MIM for disorder MIM node. Uses gene MIM if not found. Returns tuple of text, MIM and phene key """
 	found_id = "\d{6}"
