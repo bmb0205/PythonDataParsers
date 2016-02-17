@@ -27,6 +27,7 @@ class MIMNode(object):
 				return ""
 
 	def getDisorderInfo(self):
+		""" """
 		splitter = "\(\d\); "
 		found_id = "\d{6}"
 		found = re.search(splitter, self.disorder_info)
@@ -34,67 +35,36 @@ class MIMNode(object):
 		disorderMIM = ''
 		if found: # multiple associated disorders
 			disorders = re.split("; ", self.disorder_info)
-			# print '\n\n', "|".join(self.columns), '\n'
 			for dis in disorders:
 				split = dis.rsplit(" ", 2)
 				hasID = re.search(found_id, split[1])
+
 				if not hasID: # multiple disorders, one missing disorder MIM, so gene MIM == disorder/phene MIM + 'p'
-					# print self.gene_id, self.name
-					# print split, '\n'
-					# print "|".join(self.columns)
-					
-					disorderMIM = self.gene_id + "p"
-					pheneKey = split[-1][1:-1]
-					# print (self.gene_id, pheneKey, disorderMIM)
-					relnSet.add((self.gene_id, pheneKey, disorderMIM))
-				
+					if not ")" in split[-1]: # missing phene key in this one instance, due to OMIM error. Hardcode "(3)"
+						disorderMIM = "MIM:" + split[-1]
+						relnSet.add((self.gene_id, "3", disorderMIM))
+					else:
+						disorderMIM = self.gene_id + "p"
+						pheneKey = split[-1][1:-1]
+						relnSet.add((self.gene_id, pheneKey, disorderMIM))
 				else: # multiple disorders, has disorder/phene MIM available
-
-					# text = split[0].rstrip(",")
-					disorderMIM = "MIM:" + split[1]
-					if len(disorderMIM) > 10:
+					disorderMIM = "MIM:" + split[1]	
+					if len(disorderMIM) > 10: # commas after disorder MIM in two instances, 273300, 167400
 						disorderMIM = disorderMIM.rstrip(',')
-
-					
-					# print "|".join(self.columns)
-					# print 'lol', self.gene_id, self.name
-					# print split, '\n'
 					pheneKey = split[2][1:-1]
-					# print (self.gene_id, pheneKey, disorderMIM)
-					
-					# print split, '\n', self.columns, '\n\n' #self.disorder_info, '\n\n'
-
-
 					relnSet.add((self.gene_id, pheneKey, disorderMIM))
-		
 
 		else: # one disorder
 			found = re.search(found_id, self.disorder_info)
 			split = self.disorder_info.rsplit(" ", 2)
 			if found: # contain disorder MIMs
-
-				if not ")" in split[-1]: # missing phene key in this one instance, due to OMIM error. Hardcode "(3)"
-					disorderMIM = "MIM:" + split[-1]
-					relnSet.add((self.gene_id, "3", disorderMIM))
-				else:
-					disorderMIM = "MIM:" + split[1]
-					pheneKey = split[2][1:-1]
-					relnSet.add((self.gene_id, pheneKey, disorderMIM))
-				# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
+				disorderMIM = "MIM:" + split[1]
+				pheneKey = split[2][1:-1]
+				relnSet.add((self.gene_id, pheneKey, disorderMIM))
 			else: # does not contain disorder MIMs
-				# print 'lol', self.gene_id, '\t', self.disorder_info, '\n'
-				# lol MIM:608687 	Spinocerebellar ataxia 20 (4) 
-
-				# MIM:608687 	set([('Spinocerebellar ataxia 20', 'MIM:608687p', '(4)')]) 
-				# print split, '\n', self.disorder_info, '\n\n'
-				# text = " ".join(split[:2])
 				disorderMIM = self.gene_id + 'p'
 				pheneKey = split[-1][1:-1]
 				relnSet.add((self.gene_id, pheneKey, disorderMIM))
-		# 	if self.gene_id == disorderMIM:
-		# 		print 'lol', self.disorder_info
-		# if self.gene_id == disorderMIM:
-		# 	print self.disorder_info
 		return relnSet
 
 
@@ -126,16 +96,21 @@ def getDisorderNodeInfo(disorder, geneMIM):
 	disorderInfo = ""
 	found = re.search(found_id, disorder)
 	split = disorder.rsplit(" ", 2)
-
+	# print disorder
 	if found: # contain disorder MIMs
 		if not ")" in split[-1]: # missing phene key in this one instance, due to OMIM error. Hardcode "(3)"
 			disorderInfo = ((" ".join(split[:2])), ("MIM:" + split[-1]), "(3)") 
 		else:
-			disorderInfo = (split[0], ("MIM:" + split[1]), split[2])
+			if split[1].endswith(','): # 273300, 167400
+				disorderInfo = (split[0], ("MIM:" + split[1].rstrip(',')), split[2])
+			else:
+				# print disorder
+				disorderInfo = (split[0], ("MIM:" + split[1]), split[2])
 	else: # does not contain disorder MIMs, use gene MIM + 'p'
 		disorderInfo = ((split[0] + " " + split[1]), (geneMIM + "p"), split[-1])
-
-	# print disorderInfo
 	# print split, '\n', self.columns, '\n\n' #self.disorder_info, '\n\n'
-
 	return disorderInfo
+
+
+
+

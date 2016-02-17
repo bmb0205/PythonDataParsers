@@ -98,7 +98,7 @@ def writeMeSHNodes(myDict, meshNodeOutFile):
 	for item in keyList:
 		if not item in myDict.keys():
 			myDict[item] = ""
-	node = "%s|MeSH|%s|%s|%s|%s|MedicalHeading\n" %(";".join(myDict["unique_id"]), ";".join(myDict["term"]), 
+	node = "%s|MeSH|%s|%s|%s|%s|Medical_Heading\n" %(";".join(myDict["unique_id"]), ";".join(myDict["term"]), 
 		";".join(myDict["synonyms"]), ";".join(myDict["semantic_type"]), ";".join(myDict["mesh_tree_number"]))
 	meshNodeOutFile.write(node)
 
