@@ -203,6 +203,7 @@ def main(argv):
 				arg = arg + "/"
 			startTime = time.clock()
 			topDir = arg
+			print topDir
 			locale.setlocale(locale.LC_ALL, "")
 			outPath = createOutDirectory(topDir)
 
