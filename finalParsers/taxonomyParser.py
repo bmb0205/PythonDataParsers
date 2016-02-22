@@ -53,17 +53,22 @@ class TaxNamesParser(object):
 
 def parseNodes(taxFilePath):
 	""" parses nodes.dmp and adds 'parentTaxID' and 'rank' properties to taxMap """
-	taxMap = defaultdict(dict)
+	taxMap = defaultdict(lambda : defaultdict(set))
 	with open(taxFilePath, 'rU') as stream:
 		for line in stream:
-			columns = line.split("\t|\t")
+			columns = line.strip().split("\t|\t")
 			node = "NCBI_TAXONOMY:" + columns[0].strip()
-			parent = "NCBI_TAXONOMY:" + columns[1].strip()
-			rank = columns[2].strip()
 			# print node
-        	taxMap[node]['parentTaxID'] = parent
-        	taxMap[node]['rank'] = rank
-	print taxMap
+			parent = "NCBI_TAXONOMY:" + columns[1].strip()
+			# print parent
+			rank = columns[2].strip()
+			# print rank 
+			print node
+        	taxMap[node]['parentTaxID'].add(parent)
+        	taxMap[node]['rank'].add(rank)
+    		# print node, parent, rank
+    		print 'lol', line
+	# print taxMap
 	return taxMap
 
 def parseNames(namesFilePath, taxMap):
@@ -73,7 +78,6 @@ def parseNames(namesFilePath, taxMap):
 		for line in stream:
 			columns = line.split("|")
 			nameObj = TaxNamesParser(columns)
-			print vars(nameObj)
 			if not nameObj.node in synonymDict:
 				synonymDict[nameObj.node] = set()
 				synonymDict[nameObj.node].add(nameObj.term)
@@ -189,25 +193,24 @@ def main(argv):
 					for taxFile in files:
 						taxFilePath = os.path.join(root, taxFile)
 						if taxFilePath.endswith("nodes.dmp"):
-							print 'ugh'
+							
 							print "\n%s " %taxFilePath
 						 	taxMap = parseNodes(taxFilePath)
 
-						 	for k, v in taxMap.iteritems():
-						 		print k, v
-			# 			 	namesFilePath = os.path.join(root, "names.dmp")
-			# 			 	print "\n%s " %namesFilePath
-			# 			 	taxMap.update(parseNames(namesFilePath, taxMap))
 
-			# 			 	citationsFilePath = os.path.join(root, "citations.dmp")
-			# 			 	print "\n%s\n " %citationsFilePath
-			# 			 	taxMap.update(parseCitations(citationsFilePath, taxMap))
+						 	namesFilePath = os.path.join(root, "names.dmp")
+						 	print "\n%s " %namesFilePath
+						 	taxMap.update(parseNames(namesFilePath, taxMap))
 
-			# 		writeTaxData(taxMap, taxNodeOutFile, taxRelnOutFile)
+						 	citationsFilePath = os.path.join(root, "citations.dmp")
+						 	print "\n%s\n " %citationsFilePath
+						 	taxMap.update(parseCitations(citationsFilePath, taxMap))
 
-			# endTime = time.clock()
-			# duration = endTime - startTime
-			# print "It took %s seconds to create all NCBI Taxonomy nodes and relationships\n" %duration
+					writeTaxData(taxMap, taxNodeOutFile, taxRelnOutFile)
+
+			endTime = time.clock()
+			duration = endTime - startTime
+			print "It took %s seconds to create all NCBI Taxonomy nodes and relationships\n" %duration
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
