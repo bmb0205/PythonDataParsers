@@ -246,14 +246,12 @@ def main(argv):
 			""" OMIM """
 			mimGeneNodeOutFile = open((outPath + 'mimGeneNodeOut.csv'), 'w')
 			mimDisorderNodeOutFile = open((outPath + 'mimDisorderNodeOut.csv'), 'w')
-			
 			mimGeneRelnOutFile = open((outPath + 'mimGeneRelnOut.csv'), 'w')
 			mimDisorderRelnOutFile = open((outPath + 'mimDisorderRelnOut.csv'), 'w')
 			mimEntrezRelnOutFile = open((outPath + 'mimEntrezRelnOut.csv'), 'w')
 
 			mimGeneNodeOutFile.write("Source_ID:ID|Source|Name|Cytogenetic_Location|Gene_Symbol:string[]|:LABEL\n")
 			mimDisorderNodeOutFile.write("Source_ID:ID|Source|Name|Synonyms:string[]|:LABEL\n")
-			
 			mimGeneRelnOutFile.write(":START_ID|Source|:END_ID|Status|Phenotype_Mapping_Method|:TYPE\n")
 			mimDisorderRelnOutFile.write(":START_ID|Source|:END_ID|Status|Phenotype_Mapping_Method|:TYPE\n")
 			mimEntrezRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE")

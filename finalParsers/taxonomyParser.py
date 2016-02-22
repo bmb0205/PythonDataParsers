@@ -6,9 +6,7 @@ import getopt
 import locale
 import time
 from collections import defaultdict
-from taxonomyClasses import TaxNamesParser
-from taxonomyClasses import TaxNodesParser
-from taxonomyClasses import TaxCitationsParser
+# from taxonomyClasses import TaxNamesParser
 
 
 """
@@ -16,32 +14,66 @@ from taxonomyClasses import TaxCitationsParser
 ##########################################   NCBI Taxonomy Parser   #########################################################
 ##################################################################################################################
 
-Parses NCBI Taxonomy database files for graph database node and relationship creation.
-See howToRun() method for instructions.
-Infile(s): NCBI Taxonomy (*.dmp) files
-Outfile(s): taxNodeOut.csv, taxRelnOut.csv
-Imported modules: taxonomyClasses.py
 Written by: Brandon Burciaga
+
+* Parses NCBI Taxonomy database files for neo4j graph database node and relationship creation.
+* Outfiles are .csv (pipe delimited) and generated with first line header demonstrating
+	the format of the rest of the file (in columns)
+* See howToRun() method for instructions using this script.
+* Infile(s) [NCBI Taxonomy files in .dmp format, 2015 versions used]:
+	* nodes.dmp, ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/
+	* names.dmp, ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/
+	* citations.dmp, ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/
+* Outfile(s): taxNodeOut.csv, taxRelnOut.csv
+* Imports: taxonomyClasses.py
 """
 
-def parseNodes(taxFilePath, taxMap):
-	""" parses nodes.dmp and adds 'parent_tax_id' and 'rank' properties to taxMap """
-	with open(taxFilePath, 'ru') as stream:
-		count = 0
+class TaxNamesParser(object):
+    """ creates object for names.dmp """
+    def __init__(self, columns):
+        self.columns = columns
+        self.node = "NCBI_TAXONOMY:" + columns[0].strip()
+        self.term = columns[1].strip()
+        self.preferredTerm = columns[2].strip()
+
+    def getPreferred(self):
+        """ gets preferred term. If none available, uses name as preferred term """
+        if self.preferredTerm == "":
+            return self.term
+        return self.preferredTerm
+
+    def getSynonyms(self):
+        """ adds synonyms to set, return set """
+        synonymSet = set()
+        synonymSet.add(self.term)
+        if not self.preferredTerm == "":
+            synonymSet.add(self.preferredTerm)
+        return synonymSet
+
+
+def parseNodes(taxFilePath):
+	""" parses nodes.dmp and adds 'parentTaxID' and 'rank' properties to taxMap """
+	taxMap = defaultdict(dict)
+	with open(taxFilePath, 'rU') as stream:
 		for line in stream:
-			count += 1
-			columns = line.split("|")
-			nodeObj = TaxNodesParser(columns)
-			taxMap[nodeObj.node] = {"parent_tax_id" : nodeObj.parent, "rank" : nodeObj.rank}
+			columns = line.split("\t|\t")
+			node = "NCBI_TAXONOMY:" + columns[0].strip()
+			parent = "NCBI_TAXONOMY:" + columns[1].strip()
+			rank = columns[2].strip()
+			# print node
+        	taxMap[node]['parentTaxID'] = parent
+        	taxMap[node]['rank'] = rank
+	print taxMap
 	return taxMap
 
 def parseNames(namesFilePath, taxMap):
-	""" parses names.dmp and adds 'term', 'synonyms' and 'preferred_term' properties to taxMap """
-	with open(namesFilePath, 'ru') as stream:
+	""" parses names.dmp and adds 'term', 'synonyms' and 'preferredTerm' properties to taxMap """
+	with open(namesFilePath, 'rU') as stream:
 		synonymDict = dict()
 		for line in stream:
 			columns = line.split("|")
 			nameObj = TaxNamesParser(columns)
+			print vars(nameObj)
 			if not nameObj.node in synonymDict:
 				synonymDict[nameObj.node] = set()
 				synonymDict[nameObj.node].add(nameObj.term)
@@ -49,23 +81,24 @@ def parseNames(namesFilePath, taxMap):
 			else:
 				synonymDict[nameObj.node].add(nameObj.term)
 				synonymDict[nameObj.node].add(nameObj.getPreferred())
-			taxMap[nameObj.node]["preferred_term"] = nameObj.getPreferred()
+			taxMap[nameObj.node]["preferredTerm"] = nameObj.getPreferred()
 			taxMap[nameObj.node]["term"] = nameObj.term
 		for node, synonyms in synonymDict.iteritems():
 			taxMap[node]["synonyms"] = synonyms
 	return taxMap
 
 def parseCitations(citationsFilePath, taxMap):
-	""" Gets medline IDs for each tax_id and adds medline_id item to taxMap """
+	""" Gets medline IDs for each tax_id and adds medlineID item to taxMap """
 	with open(citationsFilePath, 'ru') as stream:
 		for line in stream:
 			columns = line.strip().split("|")
-			citationObj = TaxCitationsParser(columns)
-			if citationObj.medline_id != "0":
-				for node in citationObj.nodeList:
-					if node != "":
+			medlineID = columns[3].strip()
+			nodeList = columns[-2].strip().split(" ")
+			if not medlineID == "0":
+				for node in nodeList:
+					if node:
 						nodeID = ("NCBI_TAXONOMY:" + node)
-						taxMap[nodeID]["medline_id"] = citationObj.medline_id
+						taxMap[nodeID]["medlineID"] = medlineID
 	return taxMap
 
 def writeTaxData(taxMap, taxNodeOutFile, taxRelnOutFile):
@@ -74,19 +107,19 @@ def writeTaxData(taxMap, taxNodeOutFile, taxRelnOutFile):
 	Outfiles: topDir/csv_out/taxNodeOutFile.csv, topDir/csv_out/taxRelnOutFile.csv
 	"""
 	count = 0
-	print "\n\t\t\t\t\t\t  Creating and writing NCBI Taxonomy nodes and relationships..."
+	print "\nCreating and writing NCBI Taxonomy nodes and relationships..."
 	for tax_id, properties in taxMap.iteritems():
 		count += 1
-		if not "medline_id" in properties:
-			properties['medline_id'] = ""
-		node = '%s|NCBI_Taxonomy|%s|%s|%s|%s|%s|Plant\n' %(tax_id, properties["term"], properties["preferred_term"], properties["rank"], ";".join(properties["synonyms"]), properties["medline_id"])
+		if not "medlineID" in properties:
+			properties['medlineID'] = ""
+		node = '%s|NCBI_Taxonomy|%s|%s|%s|%s|%s|Plant\n' %(tax_id, properties["term"], properties["preferredTerm"], properties["rank"], ";".join(properties["synonyms"]), properties["medlineID"])
 		node = clean(node)
 		taxNodeOutFile.write(node)
-		reln = '%s|NCBI_Taxonomy|%s|is_a\n' %(tax_id, properties["parent_tax_id"])
+		reln = '%s|NCBI_Taxonomy|%s|is_a\n' %(tax_id, properties["parentTaxID"])
 		reln = clean(reln)
 		taxRelnOutFile.write(reln)
-	print "\n\t\t\t\t\t\t\t%s NCBI Taxonomy nodes have been created...\n" %locale.format('%d', count, True)
-	print "\t\t\t\t\t\t   %s NCBI Taxonomy relationships have been created...\n" %locale.format('%d', count, True)
+	print "\n%s NCBI Taxonomy nodes have been created...\n" %locale.format('%d', count, True)
+	print "%s NCBI Taxonomy relationships have been created...\n" %locale.format('%d', count, True)
 
 
 ##################################################################################################################
@@ -99,7 +132,7 @@ def createOutDirectory(topDir):
 	outPath = (str(topDir) + "csv_out/")
 	if not os.path.exists(outPath):
 		os.makedirs(outPath)
-		print "\n\n\t\t\tOutfile directory path not found...\n\t\tOne created at %s\n" %outPath
+		print "\n\nOutfile directory path not found...\n\tOne created at %s\n" %outPath
 	return outPath
 
 def clean(string):
@@ -147,33 +180,34 @@ def main(argv):
 			taxRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
 
 			taxRoot = topDir + "NCBITaxonomy/"
-			print "\n\n\n\t\t\t\t=====================================  PARSING NCBI Taxonomy ====================================="
-			print "\n\t\t\t\t\t\t\t\t\tProcessing files in:\n\n\t\t\t\t\t\t    %s\n" %taxRoot
-			print "\n\t\t\t\t\t\t\t\t\t Files processed: "
+			print "\n\n=====================================  PARSING NCBI Taxonomy ====================================="
+			print "\nProcessing files in:\n\n%s\n" %taxRoot
+			print "\nFiles processed: "
 
-			taxMap = dict()
 			for root, dirs, files in os.walk(topDir):
 				if root.endswith("NCBITaxonomy"):
 					for taxFile in files:
 						taxFilePath = os.path.join(root, taxFile)
 						if taxFilePath.endswith("nodes.dmp"):
+							print 'ugh'
+							print "\n%s " %taxFilePath
+						 	taxMap = parseNodes(taxFilePath)
 
-							print "\n\t\t\t\t\t\t %s " %taxFilePath
-						 	taxMap = parseNodes(taxFilePath, taxMap)
+						 	for k, v in taxMap.iteritems():
+						 		print k, v
+			# 			 	namesFilePath = os.path.join(root, "names.dmp")
+			# 			 	print "\n%s " %namesFilePath
+			# 			 	taxMap.update(parseNames(namesFilePath, taxMap))
 
-						 	namesFilePath = os.path.join(root, "names.dmp")
-						 	print "\n\t\t\t\t\t\t %s " %namesFilePath
-						 	taxMap.update(parseNames(namesFilePath, taxMap))
+			# 			 	citationsFilePath = os.path.join(root, "citations.dmp")
+			# 			 	print "\n%s\n " %citationsFilePath
+			# 			 	taxMap.update(parseCitations(citationsFilePath, taxMap))
 
-						 	citationsFilePath = os.path.join(root, "citations.dmp")
-						 	print "\n\t\t\t\t\t\t %s\n " %citationsFilePath
-						 	taxMap.update(parseCitations(citationsFilePath, taxMap))
+			# 		writeTaxData(taxMap, taxNodeOutFile, taxRelnOutFile)
 
-					writeTaxData(taxMap, taxNodeOutFile, taxRelnOutFile)
-
-			endTime = time.clock()
-			duration = endTime - startTime
-			print "\t\t\t\t\t   It took %s seconds to create all NCBI Taxonomy nodes and relationships\n" %duration
+			# endTime = time.clock()
+			# duration = endTime - startTime
+			# print "It took %s seconds to create all NCBI Taxonomy nodes and relationships\n" %duration
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

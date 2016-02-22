@@ -7,9 +7,9 @@ import re
 ##########################################   Ontology Parser Classes  #########################################################
 ##################################################################################################################
 
-Module imported by ontologyParser.py for various ontology node and relationship creation.
-Holds class OntologyParser
-
+Written by: Brandon Burciaga
+* Module imported by ontologyParser.py for various ontology node and relationship creation.
+* Holds class OntologyParser
 """
 
 class OntologyParser(object):
@@ -36,8 +36,6 @@ class OntologyParser(object):
 		""" Returns ID """
 		if "id" in self.kwargs:
 			ID =  self.kwargs["id"][0]
-			if "!" in ID:
-				ID = re.split(" ", ID)[0]
 			return ID
 
 	def getDef(self):
@@ -50,7 +48,7 @@ class OntologyParser(object):
 	def getSynonyms(self):
 		""" Parses synonyms and xrefs and joins into ; separated string of synonyms """
 		synonymSet = set()
-		if "synonym" not in self.kwargs:
+		if not "synonym" in self.kwargs:
 			return ""
 		if "synonym" in self.kwargs:
 			for synonym in self.kwargs["synonym"]:
@@ -67,7 +65,7 @@ class OntologyParser(object):
 	def getRelationships(self):
 		"""
 		Gathers relationships according to key (is_a, relationship, intersection_of) and returns in set
-		Skips anonymous chemicals and uses either specific or hard coded predicate depending on format
+		Skips anonymous chemicals, PATO relns and uses either specific or hard coded predicate depending on format
 		"""
 		relationSet = set()
 		ID = self.kwargs["id"][0]
@@ -85,6 +83,8 @@ class OntologyParser(object):
 				relationSet.add(relationship)
 		if "intersection_of" in self.kwargs:
 			for intersect in self.kwargs["intersection_of"]:
+				if intersect.startswith("PATO"):
+					continue
 				intersect = re.split(" ", intersect)
 				test = intersect[0]
 				if "anon_chemical" in intersect[1]:
