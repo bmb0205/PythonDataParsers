@@ -2,9 +2,17 @@
 
 import re
 
+"""
 ##################################################################################################################
-##########################################   MIM   #########################################################
+##########################################   OMIM  #########################################################
 ##################################################################################################################
+
+Written by: Brandon Burciaga
+
+* Module imported by omimParser.py for OMIM node and relationship creation.
+* Holds classes MIMNode, MIMToGene, DisorderNode
+
+"""########################################################################################
 
 class MIMNode(object):
 	""" populates object with attributes from geneMap2.txt file for node creation """
@@ -76,6 +84,7 @@ class MIMToGene(object):
 		self.type = columns[1].strip()
 		self.gene_id = "ENTREZ:" + columns[2].strip()
 
+
 class DisorderNode(object):
 	""" """
 	def __init__(self, columns):
@@ -85,7 +94,6 @@ class DisorderNode(object):
 		self.text = self.disorderInfo[0].rstrip(',')
 		self.pheneKey = self.disorderInfo[-1][1:-1].strip()
 		self.disorderID = self.disorderInfo[1].strip()
-
 
 	def setDisorderID(self):
 		self.disorderID = self.disorderID + 'p'

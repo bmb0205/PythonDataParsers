@@ -14,15 +14,23 @@ from omimClasses import MIMToGene
 from omimClasses import DisorderNode
 
 """
-Main file parser used to parse and extract data from OMIM database.
-Parsed information is written to pipe delimited .csv outfiles in a directory created by the script.
-See howToRun() method below for help running script.
-Written by: Brandon Burciaga
-"""
+##################################################################################################################
+##################################   Online Mendelian Inheritance in Man (OMIM)   ##################################
+##################################################################################################################
 
-##################################################################################################################
-#########################################   MIM   ###########################################################
-##################################################################################################################
+Written by: Brandon Burciaga
+
+* Parses Online Mendelian Inheritance in Man (OMIM) database files for neo4j graph database node and relationship creation.
+* Outfiles are .csv (pipe delimited) and generated with first line header demonstrating
+	the format of the rest of the file (in columns)
+* See howToRun() method for instructions using this script.
+* Infile(s) [OMIM files, 2015 versions used]:
+	* geneMap2.txt, http://www.omim.org/downloads
+	* mim2gene.txt, http://www.omim.org/downloads
+	* morbidmap, http://www.omim.org/downloads
+* Outfile(s): mimDisorderNodeOut.csv, mimDisorderRenOut.csv, mimEntrezRelnOut.csv, mimGeneNodeOut.csv, mimGeneRelnOut.csv
+* Imports: omimClasses.py
+"""
 
 # 15705 unique gene nodes total
 def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile): # MIM/geneMap2.txt
@@ -50,10 +58,8 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile): # MIM/geneMap2.txt
 						relnMap['genes'].add(fixedReln)
 			else:
 				continue
-	print "\n\t\t\t\t\t\t\t%s OMIM gene nodes have been created..." %locale.format('%d', geneNodeCount, True)
+	print "\n\t%s OMIM gene nodes have been created..." %locale.format('%d', geneNodeCount, True)
 	return relnSet, relnMap, geneNodeCount, geneSet
-
-
 
 # 5870 disorder nodes total
 def parseMIMDisorderNodes(MIMFilePath, relnSet, relnMap, geneSet):
@@ -122,9 +128,8 @@ def writeMIMDisorderNodes(disorderMap, mimDisorderNodeOutFile):
 			disorderTextMap[k].add(textSymbols)
 			mimDisorderNode = "%s|OMIM|%s|%s|Phenotype\n" %(k, text, "")
 			mimDisorderNodeOutFile.write(mimDisorderNode)
-	print "\n\t\t\t\t\t\t\t%s OMIM disorder nodes have been created..." %locale.format('%d', disorderNodeCount, True)
+	print "\n\t%s OMIM disorder nodes have been created..." %locale.format('%d', disorderNodeCount, True)
 	return disorderTextMap, disorderNodeCount
-
 
 def getPheneKey(pheneKey):
 	""" Hard codes text as string according to the disorder's phene mapping key """
@@ -168,7 +173,7 @@ def writeMIMRelns(relnSet, relnMap, mimGeneRelnOutFile, mimDisorderRelnOutFile, 
 		pheneKey = getPheneKey(reln[1])
 		relnString = "%s|OMIM|%s|%s|%s|caused_by_gene\n" %(reln[0], reln[2], status, pheneKey)
 		mimDisorderRelnOutFile.write(relnString)
-	print "\n\t\t\t\t\t\t\t%s OMIM relationships have been created...\n" %locale.format('%d', relnCount, True)
+	print "\n\t%s OMIM relationships have been created...\n" %locale.format('%d', relnCount, True)
 
 def MIMGeneReln(MIMFilePath, mimEntrezRelnOutFile):
 	""" Adds MIM --> Entrez gene relationships to unique set, writes to mimGeneRelnOutFile """
@@ -190,7 +195,7 @@ def MIMGeneReln(MIMFilePath, mimEntrezRelnOutFile):
 	for reln in relnSet2:
 		relnCount += 1
 		mimEntrezRelnOutFile.write("|".join(reln) + "\n")
-	print "\n\t\t\t\t\t  %s OMIM --> NCBI Entrez Gene relationships have been created..." %locale.format('%d', relnCount, True)
+	print "\n\t%s OMIM --> NCBI Entrez Gene relationships have been created..." %locale.format('%d', relnCount, True)
 
 #################################################################################################################
 #########################################   GENERAL   ###########################################################
@@ -260,25 +265,25 @@ def main(argv):
 				
 				""" OMIM """
 				if root.endswith("OMIM"):
-					print "\n\n\n\t\t\t================ PARSING ONLINE MENDELIAN INHERITANCE IN MAN (OMIM) DATABASE ======================"
-					print "\n\t\t\t\t\t\t\t\tProcessing files in:"
+					print "\n\n\n================ PARSING ONLINE MENDELIAN INHERITANCE IN MAN (OMIM) DATABASE ======================"
+					print "\nProcessing files in:"
 					for MIMFile in files:
 						MIMFilePath =  os.path.join(root, MIMFile)
 						if MIMFilePath.endswith("geneMap2.txt"):
-							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath
+							print "\n%s" %MIMFilePath
 							relnSet, relnMap, geneNodeCount, geneSet = writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile)
 						if MIMFilePath.endswith("morbidmap"):
-							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath
+							print "\n%s" %MIMFilePath
 							relnSet, relnMap, disorderMap = parseMIMDisorderNodes(MIMFilePath, relnSet, relnMap, geneSet)
 							disorderTextMap, disorderNodeCount = writeMIMDisorderNodes(disorderMap, mimDisorderNodeOutFile)
 							writeMIMRelns(relnSet, relnMap, mimGeneRelnOutFile, mimDisorderRelnOutFile, disorderTextMap)
 						if MIMFilePath.endswith("mim2gene.txt"):
-							print "\n\t\t\t\t\t\t\t%s" %MIMFilePath							
+							print "\n%s" %MIMFilePath							
 							MIMGeneReln(MIMFilePath, mimEntrezRelnOutFile)
 			endTime = time.clock()
 			duration = endTime - startTime
-			print "\t\t\t\t\t\t\t%s total OMIM nodes have been created..." %locale.format('%d', (disorderNodeCount + geneNodeCount), True)
-			print "\n\t\t\t\t\tIt took %s seconds to create all OMIM nodes and relationships\n" %duration
+			print "%s total OMIM nodes have been created..." %locale.format('%d', (disorderNodeCount + geneNodeCount), True)
+			print "\nIt took %s seconds to create all OMIM nodes and relationships\n" %duration
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
