@@ -30,7 +30,6 @@ Written by: Brandon Burciaga
 * Outfile(s): GOmfbp_to_ChEBI.csv, MPheno.ontologycsv, chebi_ontologycsv, disease_ontologycsv, gene_ontologycsv,
     human_phenotype.csv, molecular_function_xp_chebi.csv, plant_trait_ontologycsv
 * Imports: ontologyClasses.py module
-
 """
 
 
@@ -110,9 +109,10 @@ def parseTagValue(block):
     return data
 
 
-def writeNodes(nodeOutFile, nodeSet):
+def writeOntologyNodes(nodeOutFile, nodeSet):
     """ Writes ontology nodes using attributes listed """
     nodeCount = 0
+    # print nodeOutFile
     with open(nodeOutFile, "w") as oboNodeOut:
         oboNodeOut.write("Source_ID:ID|Name|Source|Definition|Synonyms:string[]|:LABEL\n")
         for node in nodeSet:
@@ -122,30 +122,71 @@ def writeNodes(nodeOutFile, nodeSet):
     return nodeCount
 
 
-def writeRelationships(relnOutFile, uniqueNodeSet, relnSet):
+def writeOntologyRelationships(relnOutFile, bigUniqueNodeSet, bigRelnSet):
     """
     Writes header and relationships to oboRelnOut.csv if the nodes exist.
-    Writes bad relationships to outfile.
     """
-    relnCount = 0
-    badRelnOutFile = relnOutFile.rsplit("/", 1)[0] + "/badOntologyReln.csv"
-    with open(relnOutFile, "w") as oboRelnOut, open(badRelnOutFile, "w") as badOntologyRelnOut:
+    totalRelnCount = 0
+    with open(relnOutFile, "w") as oboRelnOut:
         oboRelnOut.write(":START_ID|Source|:END_ID|:TYPE\n")
-        badOntologyRelnOut.write("# relationships with at least one missing node\n")
-        for reln in relnSet:
-            reln1 = reln.split("|")[0]
-            reln2 = reln.split("|")[2]
-            if reln1 in uniqueNodeSet and reln2 in uniqueNodeSet:
-                relnCount += 1
+        for reln in bigRelnSet:
+            startNode = reln.split("|")[0]
+            endNode = reln.split("|")[2]
+            if startNode in bigUniqueNodeSet and endNode in bigUniqueNodeSet:
+                totalRelnCount += 1
                 reln = clean(reln)
-                print reln, '\n'
                 oboRelnOut.write(reln + "\n")
-            else:  # skips relationships due to nodes not existing
-                if reln1 not in uniqueNodeSet:
-                    badOntologyRelnOut.write(reln + "\t\tMissing node:  " + reln1 + '\n')
-                elif reln2 not in uniqueNodeSet:
-                    badOntologyRelnOut.write(reln + "\t\tMissing node:  " + reln2 + '\n')
-    return relnCount
+    return totalRelnCount
+
+
+def parseObo(topDir, oboFilePath, termList, editedSource):
+    """
+    Iterates terms in termList for the input .obo file, creates a dictionary of term information.
+    Creates OntologyParser object with dictionary as input.
+    Skips obsolete nodes, writes unique nodes to outfile, returns set of unique relationships.
+    """
+    uniqueNodeSet = set()
+    nodeSet = set()
+    relnSet = set()
+    # creates OntologyParser object for each term block
+    for term in termList:
+        dataDict = parseTagValue(term)
+        ontologyObj = OntologyParser(**dataDict)
+
+        # Skips obsolete nodes
+        if ontologyObj.skipObsolete() is True:
+            continue
+
+        # creates node strings
+        nodeString = "%s|%s|%s|%s|%s|%s\n" % (ontologyObj.getID(), ontologyObj.getName(), editedSource, ontologyObj.getDef(), ontologyObj.getSynonyms(), ontologyObj.getLabel())
+        nodeString = nodeString.replace("None", "").replace("|p|", "|plant_ontology|")
+        nodeSet.add(nodeString)
+        uniqueNodeSet.add(ontologyObj.getID())
+
+        # creates relationship strings within ontology files, adds to relnSet
+        for reln in ontologyObj.getRelationships():
+            relnString = "%s|%s|%s|%s" % (reln[0], editedSource, reln[2], reln[1])
+            relnSet.add(relnString)
+
+    # writes nodes
+    nodeOutFile = (topDir + "csv_out/" + editedSource + ".csv")
+    nodeCount = writeOntologyNodes(nodeOutFile, nodeSet)
+    print "\t%s nodes have been created from this ontology\n" % locale.format("%d", nodeCount, True)
+    return uniqueNodeSet, relnSet, nodeCount
+
+
+def parseRelnFiles(oboFilePath, termList, editedSource):
+    """ """
+    relnSet = set()
+    for term in termList:
+        dataDict = parseTagValue(term)
+        ontologyObj = OntologyParser(**dataDict)
+        for reln in ontologyObj.getRelationships():
+            relnString = "%s|%s|%s|%s" % (reln[0], editedSource, reln[2], reln[1])
+            relnSet.add(relnString)
+    print "\t%s relationships have been created from this ontology\n" % locale.format("%d", len(relnSet), True)
+    return relnSet
+
 
 ##################################################################################################################
 ##########################################   General   #########################################################
@@ -198,75 +239,49 @@ def main(argv):
             startTime = time.clock()
             topDir = arg
             locale.setlocale(locale.LC_ALL, "")
-            uniqueNodeSet = set()
-            relnSet = set()
-            totalNodeCount = 0
-            for root, dirs, files in os.walk(topDir):
+
+            """ PARRRSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE """
+            sourceList = os.listdir(topDir)[::-1]  # ['TTD', 'Ontologies', 'OMIM', 'NCBITaxonomy', 'NCBIEntrezGene', 'NAL', 'MeSH', 'CTD', 'csv_out']
+            for source in sourceList:
+                sourcePath = os.path.join(topDir + source)
 
                 """ Ontologies """
-                if root.endswith("Ontologies"):
-                    print "\n\n\n\t\t=====================================  PARSING Ontologies ====================================="
-                    print "\nProcessing files in:\n\n\t%s" % root
-                    for oboFile in files:
-                        if oboFile.endswith(".obo"):
-                            nodeSet = set()
-                            oboFilePath = os.path.join(root, oboFile)
-                            with open(oboFilePath, "r") as inFile:
-                                blockList = getBlock(inFile)
-                                termList, typedefList, metaData = sortBlocks(blockList)
-                            editedSource = editSource(getSource(metaData), oboFilePath)
+                bigUniqueNodeSet = set()
+                bigRelnSet = set()
+                totalNodeCount = 0
+                if sourcePath.endswith('Ontologies'):
+                    print "\n\n\n=====================================  PARSING Ontologies ====================================="
+                    print "\nProcessing files in:\n\t%s\n" % sourcePath
+                    fileList = os.listdir(sourcePath)
+                    for oboFile in fileList:
+                        oboFilePath = os.path.join(sourcePath, oboFile)
+                        with open(oboFilePath, "rU") as inFile:
+                            blockList = getBlock(inFile)
+                            termList, typedefList, metaData = sortBlocks(blockList)
+                        editedSource = editSource(getSource(metaData), oboFilePath)
 
-                            # write nodes and relationships from individual ontology files
-                            if not oboFilePath.endswith(("GOmfbp_to_ChEBI03092015.obo", "molecular_function_xp_chebi03092015.obo")):
-                                print "\n%s" % oboFilePath
+                        # write nodes and relationships from individual ontology files
+                        if not oboFilePath.endswith(("GOmfbp_to_ChEBI03092015.obo", "molecular_function_xp_chebi03092015.obo")):
+                            print "\n%s" % oboFilePath
+                            uniqueNodeSet, relnSet, nodeCount = parseObo(topDir, oboFilePath, termList, editedSource)
+                            totalNodeCount += nodeCount
+                            bigRelnSet.update(relnSet)
+                            bigUniqueNodeSet.update(uniqueNodeSet)
 
-                                # creates OntologyParser object for each term block
-                                for term in termList:
-                                    dataDict = parseTagValue(term)
-                                    ontologyObj = OntologyParser(**dataDict)
+                        # creates relationship strings for cross-ontology files, adds to relnSet
+                        else:
+                            print "\n%s" % oboFilePath
+                            relnSet = parseRelnFiles(oboFilePath, termList, editedSource)
+                            bigRelnSet.update(relnSet)
 
-                                    # Skips obsolete nodes
-                                    if ontologyObj.skipObsolete() is True:
-                                        continue
+                    # write relationships
+                    relnOutFile = (topDir + "csv_out/oboRelnOut.csv")
+                    totalRelnCount = writeOntologyRelationships(relnOutFile, bigUniqueNodeSet, bigRelnSet)
 
-                                    # creates node strings
-                                    nodeString = "%s|%s|%s|%s|%s|%s\n" % (ontologyObj.getID(), ontologyObj.getName(), editedSource, ontologyObj.getDef(), ontologyObj.getSynonyms(), ontologyObj.getLabel())
-                                    nodeString = nodeString.replace("None", "").replace("|p|", "|plant_ontology|")
-                                    nodeSet.add(nodeString)
-                                    uniqueNodeSet.add(ontologyObj.getID())
-
-                                    # creates relationship strings within ontology files, adds to relnSet
-                                    for reln in ontologyObj.getRelationships():
-                                        relnString = "%s|%s|%s|%s" % (reln[0], editedSource, reln[2], reln[1])
-                                        relnSet.add(relnString)
-
-                                # writes nodes
-                                nodeOutFile = (topDir + "csv_out/" + editedSource + ".csv")
-                                nodeCount = writeNodes(nodeOutFile, nodeSet)
-                                totalNodeCount += nodeCount
-                                print "\t%s nodes have been created from this ontology" % locale.format("%d", nodeCount, True)
-
-                            # creates relationship strings for cross-ontology files, adds to relnSet
-                            else:
-                                relnCount = 0
-                                for term in termList:
-                                    dataDict = parseTagValue(term)
-                                    ontologyObj = OntologyParser(**dataDict)
-                                    for reln in ontologyObj.getRelationships():
-                                        relnString = "%s|%s|%s|%s" % (reln[0], editedSource, reln[2], reln[1])
-                                        relnSet.add(relnString)
-                                        relnCount += 1
-                                print "\n%s" % oboFilePath
-                                print "\t%s relationships have been created from this ontology" % locale.format("%d", relnCount, True)
-
-            # write relationships
-            relnOutFile = (topDir + "csv_out/oboRelnOut.csv")
-            totalRelnCount = writeRelationships(relnOutFile, uniqueNodeSet, relnSet)
-
-            endTime = time.clock()
-            duration = endTime - startTime
-            print "\n%s nodes and %s ontology relationships have been created." % (locale.format("%d", totalNodeCount, True), locale.format("%d", totalRelnCount, True))
-            print "\nIt took %s seconds to create all ontology nodes and relationships. \n\n" % duration
+                    endTime = time.clock()
+                    duration = endTime - startTime
+                    print "\n%s nodes and %s ontology relationships have been created." % (locale.format("%d", totalNodeCount, True), locale.format("%d", totalRelnCount, True))
+                    print "\nIt took %s seconds to create all ontology nodes and relationships. \n\n" % duration
 
 if __name__ == "__main__":
     main(sys.argv[1:])
