@@ -10,10 +10,11 @@ from operator import itemgetter
 from omimClasses import MIMNode
 from omimClasses import DisorderNode
 
+
 """
-##################################################################################################################
-##################################   Online Mendelian Inheritance in Man (OMIM)   ##################################
-##################################################################################################################
+###########################################################################################################
+############################   Online Mendelian Inheritance in Man (OMIM) Parser   ##########################
+#############################################################################################################
 
 Written by: Brandon Burciaga
 
@@ -46,9 +47,9 @@ def writeMIMgeneNodes(MIMFilePath, mimGeneNodeOutFile):  # MIM/geneMap2.txt
             columns = line.replace("''", "").replace("'", "prime").split("|")
             geneObj = MIMNode(columns)
             mimGeneNode = "%s|OMIM|%s|%s|%s|Gene\n" % (
-                    geneObj.gene_id, geneObj.name,
-                    geneObj.cytogenetic_location,
-                    geneObj.getGeneSymbols())
+                geneObj.gene_id, geneObj.name,
+                geneObj.cytogenetic_location,
+                geneObj.getGeneSymbols())
             mimGeneNodeOutFile.write(mimGeneNode)
             geneNodeCount += 1
             geneSet.add(geneObj.gene_id)
@@ -83,7 +84,7 @@ def parseMIMDisorderNodes(MIMFilePath, relnSet, relnMap, geneSet):
             # ['OMIM:615538', 'OMIM:602782', 'OMIM:615162', 'OMIM:615022', 'OMIM:185900']
             # example: Chromosome 22q13 duplication syndrome, 615538 (4)|DUP22q13, C22DUPq13|615538|22q13
             # fix: make disorder ID the geneID + 'p'
-            if disObj.disorderID == disObj.geneOMIM:
+            if disObj.disorderID == disObj.geneMIM:
                 disObj.setDisorderID()
                 fixedTup = (disObj.disorderID, disObj.pheneKey, disObj.geneMIM)
                 disorderMap[disObj.disorderID].add(disObj)
@@ -107,7 +108,6 @@ def writeMIMDisorderNodes(disorderMap, mimDisorderNodeOutFile):
     for k, v in disorderMap.iteritems():
         myList = list()
         synonymSet = set()
-
         # 504 nodes written with at least one duplicate...take best pheneKey and text, other text are synonyms
         if len(v) > 1:
             for obj in v:
@@ -143,20 +143,25 @@ def writeMIMDisorderNodes(disorderMap, mimDisorderNodeOutFile):
 
 def getPheneKey(pheneKey):
     """ Hard codes text as string according to the disorder's phene mapping key """
-    if pheneKey == "1":
-        return "Disorder placed by association. Underlying defect unknown."
-    elif pheneKey == "2":
-        return "Disorder placed by linkage. No mutation found."
-    elif pheneKey == "3":
-        return "Disorder has known molecular basis. Mutation found."
+    pheneKeyOptions = {'1': "Disorder placed by association. Underlying defect unknown.",
+               '2': "Disorder placed by linkage. No mutation found.",
+               '3': "Disorder has known molecular basis",
+               '4': ("Contiguous gene delection or duplication syndrome. "
+                     "Multiple genes deleted or duplicated")}
+    if pheneKey in pheneKeyOptions:
+        return pheneKeyOptions[pheneKey]
     else:
-        return "Contiguous gene deletion or duplication syndrome. Multiple genes are deleted or duplicated."
+        return ""
 
 
 def getStatus(text):
     """ Hard codes and returns text as string according to OMIM symbols """
+
+
+
     if text == "{?":
-        return "Mutation contributing to susceptibility to multifactorial disorders or infection. Unconfirmed or possibly spurrious mapping."
+        return ("Mutation contributing to susceptibility to multifactorial disorders or infection. "
+                "Unconfirmed or possibly spurrious mapping.")
     elif text.startswith("{"):
         return "Mutation contributing to susceptibility to multifactorial disorders or infection."
     elif text.startswith("?"):
@@ -179,6 +184,7 @@ def writeMIMRelns(relnSet, relnMap, mimGeneRelnOutFile, mimDisorderRelnOutFile, 
         statusSet = disorderTextMap[reln[-1]]
         status = getStatus("".join(statusSet))
         pheneKey = getPheneKey(reln[1])
+        print pheneKey
         relnString = "%s|OMIM|%s|%s|%s|causes_phenotype\n" % (reln[0], reln[2], status, pheneKey)
         mimGeneRelnOutFile.write(relnString)
     for reln in relnMap['disorders']:
@@ -186,6 +192,7 @@ def writeMIMRelns(relnSet, relnMap, mimGeneRelnOutFile, mimDisorderRelnOutFile, 
         statusSet = disorderTextMap[reln[0]]
         status = getStatus("".join(statusSet))
         pheneKey = getPheneKey(reln[1])
+        print pheneKey
         relnString = "%s|OMIM|%s|%s|%s|caused_by_gene\n" % (reln[0], reln[2], status, pheneKey)
         mimDisorderRelnOutFile.write(relnString)
     print "\n\t%s OMIM relationships have been created\n" % locale.format('%d', relnCount, True)
@@ -283,6 +290,9 @@ def main(argv):
 
             disorderNodeCount = 0
             geneNodeCount = 0
+            relnSet = set()
+            geneSet = set()
+            relnMap = defaultdict(set)
             for root, dirs, files in os.walk(topDir):
 
                 """ OMIM """
@@ -304,7 +314,7 @@ def main(argv):
                             MIMGeneReln(MIMFilePath, mimEntrezRelnOutFile)
             endTime = time.clock()
             duration = endTime - startTime
-            print "%s total OMIM nodes have been created" % locale.format('%d', (disorderNodeCount + geneNodeCount), True)
+            print "\t%s total OMIM nodes have been created" % locale.format('%d', (disorderNodeCount + geneNodeCount), True)
             print "\nIt took %s seconds to create all OMIM nodes and relationships\n" % duration
 
 if __name__ == "__main__":

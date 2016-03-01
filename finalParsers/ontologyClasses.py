@@ -72,40 +72,47 @@ class OntologyParser(object):
         ID = self.kwargs["id"][0]
         if "is_a" in self.kwargs:
             for reln in self.kwargs["is_a"]:
-                reln = re.split(" ! ", reln)[0]
                 predicate = "is_a"
-                relationship = (ID, predicate, reln)
+                if reln.startswith("PATO"):
+                    continue
+                if reln.startswith("TO"):
+                    if "is_inferred" in reln:
+                        subject = reln.split(" ")[0]
+                    else:
+                        subject = reln.split(" ! ")[0]
+                    relationship = (ID, predicate, subject)
+                    relationSet.add(relationship)
+                subject = reln.split(" ! ")[0]
+                relationship = (ID, predicate, subject)
                 relationSet.add(relationship)
         if "relationship" in self.kwargs:
             for reln in self.kwargs["relationship"]:
-                predicate = re.split(" ", reln)[0]
-                reln = re.split(" ", reln)[1]
+                predicate = reln.split(" ")[0]
+                reln = reln.split(" ")[1]
                 if predicate.startswith("OBO_REL"):
-                    predicate = re.split(":", predicate)[1]
+                    predicate = predicate.split(":")[1]
                 relationship = (ID, predicate, reln)
                 relationSet.add(relationship)
         if "intersection_of" in self.kwargs:
             for intersect in self.kwargs["intersection_of"]:
                 if intersect.startswith("PATO"):
                     continue
-                intersect = re.split(" ", intersect)
+                intersect = intersect.split(" ")
                 test = intersect[0]
                 if "anon_chemical" in intersect[1]:
                     continue
                 if test[0].islower():  # use specific predicate
-                    obj = re.split(" ", ID)[0]
                     predicate = test
                     subject = intersect[1]
-                    relationship = (obj, predicate, subject)
+                    relationship = (ID, predicate, subject)
                     relationSet.add(relationship)
                 else:
-                    obj = re.split(" ", ID)[0]
                     predicate = "intersect_of"
                     subject = intersect[0]
                     if subject.startswith("OBO_REL"):
-                        predicate = re.split(":", subject)[1]
+                        predicate = subject.split(":")[1]
                         subject = intersect[1]
-                    relationship = (obj, predicate, subject)
+                    relationship = (ID, predicate, subject)
                     relationSet.add(relationship)
         return relationSet
 
