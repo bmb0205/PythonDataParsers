@@ -186,7 +186,7 @@ def main(argv):
     """ If run as main script, function executes with user input """
     topDir = ""
     try:
-        opts, args = getopt.getopt(argv, "hp:", ["help", "dirPath="])
+        opts, args = getopt.getopt(argv, 'hp:', ['help', 'dirPath='])
         if len(argv) == 0:
             howToRun()
     except getopt.GetoptError:
@@ -194,7 +194,7 @@ def main(argv):
     for opt, arg in opts:
         if opt in ['-h', '--help']:
             howToRun()
-        elif opt in ("-p", "--dirPath"):
+        elif opt in ['-p', '--dirPath']:
             if not arg.endswith("/"):
                 arg = arg + "/"
             startTime = time.clock()

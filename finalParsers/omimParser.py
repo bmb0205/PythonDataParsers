@@ -144,10 +144,10 @@ def writeMIMDisorderNodes(disorderMap, mimDisorderNodeOutFile):
 def getPheneKey(pheneKey):
     """ Hard codes text as string according to the disorder's phene mapping key """
     pheneKeyOptions = {'1': "Disorder placed by association. Underlying defect unknown.",
-               '2': "Disorder placed by linkage. No mutation found.",
-               '3': "Disorder has known molecular basis",
-               '4': ("Contiguous gene delection or duplication syndrome. "
-                     "Multiple genes deleted or duplicated")}
+                       '2': "Disorder placed by linkage. No mutation found.",
+                       '3': "Disorder has known molecular basis",
+                       '4': ("Contiguous gene delection or duplication syndrome. ",
+                             "Multiple genes deleted or duplicated")}
     if pheneKey in pheneKeyOptions:
         return pheneKeyOptions[pheneKey]
     else:
@@ -156,9 +156,6 @@ def getPheneKey(pheneKey):
 
 def getStatus(text):
     """ Hard codes and returns text as string according to OMIM symbols """
-
-
-
     if text == "{?":
         return ("Mutation contributing to susceptibility to multifactorial disorders or infection. "
                 "Unconfirmed or possibly spurrious mapping.")
@@ -184,7 +181,6 @@ def writeMIMRelns(relnSet, relnMap, mimGeneRelnOutFile, mimDisorderRelnOutFile, 
         statusSet = disorderTextMap[reln[-1]]
         status = getStatus("".join(statusSet))
         pheneKey = getPheneKey(reln[1])
-        print pheneKey
         relnString = "%s|OMIM|%s|%s|%s|causes_phenotype\n" % (reln[0], reln[2], status, pheneKey)
         mimGeneRelnOutFile.write(relnString)
     for reln in relnMap['disorders']:
@@ -192,7 +188,6 @@ def writeMIMRelns(relnSet, relnMap, mimGeneRelnOutFile, mimDisorderRelnOutFile, 
         statusSet = disorderTextMap[reln[0]]
         status = getStatus("".join(statusSet))
         pheneKey = getPheneKey(reln[1])
-        print pheneKey
         relnString = "%s|OMIM|%s|%s|%s|caused_by_gene\n" % (reln[0], reln[2], status, pheneKey)
         mimDisorderRelnOutFile.write(relnString)
     print "\n\t%s OMIM relationships have been created\n" % locale.format('%d', relnCount, True)

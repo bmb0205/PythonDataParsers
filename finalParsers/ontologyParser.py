@@ -171,7 +171,7 @@ def parseObo(topDir, oboFilePath, termList, editedSource):
     # writes nodes
     nodeOutFile = (topDir + "csv_out/" + editedSource + ".csv")
     nodeCount = writeOntologyNodes(nodeOutFile, nodeSet)
-    print "\t%s nodes have been created from this ontology\n" % locale.format("%d", nodeCount, True)
+    print "\t%s nodes have been created from this ontology." % locale.format("%d", nodeCount, True)
     return uniqueNodeSet, relnSet, nodeCount
 
 

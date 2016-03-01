@@ -28,7 +28,7 @@ Written by: Brandon Burciaga
 """
 
 
-def parseNodes(ttdFilePath):
+def parseTTDNodes(ttdFilePath):
     """ Parses TTD_download_raw.txt for node information """
     # nodeDict: when accessing nodeDict[key][key_doesn't_exist], lambda: defaultdict(set) is called
     # and creates nodeDict[key][now_existing_key] = set(). Defaultdict(set) nested two levels.
@@ -207,8 +207,8 @@ def main(argv):
 
                         if ttdFilePath.endswith("TTD_download_raw.txt"):
                             print ttdFilePath
-                            nodeDict, nodeSet = parseNodes(ttdFilePath)
-                            nodeCount = writeNodes(nodeDict, nodeOutFile)
+                            nodeDict, nodeSet = parseTTDNodes(ttdFilePath)
+                            nodeCount = writeTTDNodes(nodeDict, nodeOutFile)
 
                             tempPath = root + "/target-disease_TTD2016.txt"
                             print tempPath
