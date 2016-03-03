@@ -90,6 +90,7 @@ def main(argv):
             print '\n\n', sourceList
 
             for source in sourceList:
+                # if os.path.isdir(source):
                 sourcePath = os.path.join(topDir + source)
                 fileList = os.listdir(sourcePath)
 
@@ -131,44 +132,44 @@ def main(argv):
 ######################
 ######################
 
-                if sourcePath.endswith('Ontologies'):
-                    """ Ontologies """
-                    bigUniqueNodeSet = set()
-                    bigRelnSet = set()
-                    totalNodeCount = 0
-                    if sourcePath.endswith('Ontologies'):
-                        print "\n\n\n=====================================  PARSING Ontologies ====================================="
-                        print "\nProcessing files in:\n\t%s\n" % sourcePath
-                        fileList = os.listdir(sourcePath)
-                        for oboFile in fileList:
-                            oboFilePath = os.path.join(sourcePath, oboFile)
-                            with open(oboFilePath, "rU") as inFile:
-                                blockList = ontologyParser.getBlock(inFile)
-                                termList, typedefList, metaData = ontologyParser.sortBlocks(blockList)
-                            editedSource = ontologyParser.editSource(ontologyParser.getSource(metaData), oboFilePath)
+                # if sourcePath.endswith('Ontologies'):
+                #     """ Ontologies """
+                #     bigUniqueNodeSet = set()
+                #     bigRelnSet = set()
+                #     totalNodeCount = 0
+                #     if sourcePath.endswith('Ontologies'):
+                #         print "\n\n\n=====================================  PARSING Ontologies ====================================="
+                #         print "\nProcessing files in:\n\t%s\n" % sourcePath
+                #         fileList = os.listdir(sourcePath)
+                #         for oboFile in fileList:
+                #             oboFilePath = os.path.join(sourcePath, oboFile)
+                #             with open(oboFilePath, "rU") as inFile:
+                #                 blockList = ontologyParser.getBlock(inFile)
+                #                 termList, typedefList, metaData = ontologyParser.sortBlocks(blockList)
+                #             editedSource = ontologyParser.editSource(ontologyParser.getSource(metaData), oboFilePath)
 
-                            # write nodes and relationships from individual ontology files
-                            if not oboFilePath.endswith(("GOmfbp_to_ChEBI03092015.obo", "molecular_function_xp_chebi03092015.obo")):
-                                print "\n%s" % oboFilePath
-                                uniqueNodeSet, relnSet, nodeCount = ontologyParser.parseObo(topDir, oboFilePath, termList, editedSource)
-                                totalNodeCount += nodeCount
-                                bigRelnSet.update(relnSet)
-                                bigUniqueNodeSet.update(uniqueNodeSet)
+                #             # write nodes and relationships from individual ontology files
+                #             if not oboFilePath.endswith(("GOmfbp_to_ChEBI03092015.obo", "molecular_function_xp_chebi03092015.obo")):
+                #                 print "\n%s" % oboFilePath
+                #                 uniqueNodeSet, relnSet, nodeCount = ontologyParser.parseObo(topDir, oboFilePath, termList, editedSource)
+                #                 totalNodeCount += nodeCount
+                #                 bigRelnSet.update(relnSet)
+                #                 bigUniqueNodeSet.update(uniqueNodeSet)
 
-                            # creates relationship strings for cross-ontology files, adds to relnSet
-                            else:
-                                print "\n%s" % oboFilePath
-                                relnSet = ontologyParser.parseRelnFiles(oboFilePath, termList, editedSource)
-                                bigRelnSet.update(relnSet)
+                #             # creates relationship strings for cross-ontology files, adds to relnSet
+                #             else:
+                #                 print "\n%s" % oboFilePath
+                #                 relnSet = ontologyParser.parseRelnFiles(oboFilePath, termList, editedSource)
+                #                 bigRelnSet.update(relnSet)
 
-                        # write relationships
-                        relnOutFile = (topDir + "csv_out/oboRelnOut.csv")
-                        totalRelnCount = ontologyParser.writeOntologyRelationships(relnOutFile, bigUniqueNodeSet, bigRelnSet)
+                #         # write relationships
+                #         relnOutFile = (topDir + "csv_out/oboRelnOut.csv")
+                #         totalRelnCount = ontologyParser.writeOntologyRelationships(relnOutFile, bigUniqueNodeSet, bigRelnSet)
 
-                        # endTime = time.clock()
-                        # duration = endTime - startTime
-                        print "\n%s nodes and %s ontology relationships have been created." % (locale.format("%d", totalNodeCount, True), locale.format("%d", totalRelnCount, True))
-                        # print "\nIt took %s seconds to create all ontology nodes and relationships. \n\n" % duration
+                #         # endTime = time.clock()
+                #         # duration = endTime - startTime
+                #         print "\n%s nodes and %s ontology relationships have been created." % (locale.format("%d", totalNodeCount, True), locale.format("%d", totalRelnCount, True))
+                #         # print "\nIt took %s seconds to create all ontology nodes and relationships. \n\n" % duration
 
 ######################
 ######################
@@ -210,8 +211,10 @@ def main(argv):
                         ctdFileList = os.listdir(newRoot)
                         for ctdFile in ctdFileList:
                             ctdFilePath = os.path.join(newRoot, ctdFile)
-                            if ctdFile == "CTD_chem_gene_ixns.tsv":
-                                ctdParser.parseCTD(ctdFilePath, bigNodeSet)
+                            if ctdFile == "CTD_chem_gene_ixn_types.tsv":
+                                typeDict = ctdParser.ixnTypes(ctdFilePath)
+                                tempCtdFilePath = newRoot + "CTD_chem_gene_ixns.tsv"
+                                ctdParser.parseCTD(tempCtdFilePath, bigNodeSet, typeDict)
 
 ######################
 ######################
