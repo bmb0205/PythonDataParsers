@@ -214,8 +214,8 @@ def main(argv):
                             if ctdFile == "CTD_chem_gene_ixn_types.tsv":
                                 typeDict = ctdParser.ixnTypes(ctdFilePath)
                                 tempCtdFilePath = newRoot + "CTD_chem_gene_ixns.tsv"
-                                ctdParser.parseCTD(tempCtdFilePath, bigNodeSet, typeDict)
-
+                                objList = ctdParser.parseCTD(tempCtdFilePath, bigNodeSet, typeDict)
+                                ctdParser.writeRelns(objList)
 ######################
 ######################
 ######################

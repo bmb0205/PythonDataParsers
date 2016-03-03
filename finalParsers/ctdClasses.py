@@ -17,34 +17,23 @@ class ChemGeneIXNS(object):
     """ creates object for names.dmp """
     def __init__(self, columns):
         self.columns = columns
-        self.meshID = self.columns[1].strip()
-        self.entrezGeneID = self.columns[4].strip()
-        self.interaction = self.columns[8].strip()
+        self.meshID = columns[1]
+        self.entrezGeneID = columns[4]
+        self.interaction = columns[8]
 
     def getInteractionActions(self):
-        actions = set(self.columns[9].replace('^', '_').split('|'))
-        return actions
+        actionSet = set(self.columns[9].replace('^', '_').split('|'))
+        return actionSet
 
     def getInteractionTypes(self):
         """ """
         typeSet = set()
-        interactionTypeList = self.columns[9].split('|')
+        interactionTypeList = columns[9].split('|')
         for item in interactionTypeList:
             itemType = item.split('^')[0]
             typeSet.add(itemType)
         return typeSet
 
-class IxnType(object):
-    def __init__(self, columns):
-        self.columns = columns
-        self.typeName = columns[0]
-        self.code = columns[1]
-        self.description = columns[2]
-
-    def getParentCode(self):
-        if len(self.columns) == 3:
-            return ''
-        return self.columns[3]
 
 
 

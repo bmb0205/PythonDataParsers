@@ -7,7 +7,6 @@ import locale
 import os
 from collections import defaultdict
 from ctdClasses import ChemGeneIXNS
-from ctdClasses import IxnType
 
 
 """
@@ -29,28 +28,30 @@ Written by: Brandon Burciaga
 
 
 def ixnTypes(ctdFilePath):
-    """ """
+    """ 
+    ctdFilePath: /path/CTD_chem_gene_ixn_types.tsv
+    Returns typeDict which maps meshID to code, description and parent code 
+    """
     typeDict = defaultdict(lambda: defaultdict(str))
     with open(ctdFilePath, 'rU') as inFile:
         for line in inFile:
             if line.startswith('#'):
                 continue
             columns = line.strip().split('\t')
-            typeDict[columns[0]]['code'] = columns[1]
-            typeDict[columns[0]]['description'] = columns[2]
+            meshID = columns[0]
+            typeDict[meshID]['code'] = columns[1]
+            typeDict[meshID]['description'] = columns[2]
             try:
-                typeDict[columns[0]]['parentCode'] = columns[3]
+                typeDict[meshID]['parentCode'] = columns[3]
             except:
-                typeDict[columns[0]]['parentCode'] = ''
+                typeDict[meshID]['parentCode'] = ''
     return typeDict
-
-
-# .000217 obj .000209
 
 
 def parseCTD(tempCtdFilePath, bigNodeSet, typeDict):
     """ """
     mySet = set()
+    objList = list()
     # print 'bignodeset ', len(bigNodeSet)
     count = 0
     relnDict = defaultdict(lambda: defaultdict(set))
@@ -60,15 +61,47 @@ def parseCTD(tempCtdFilePath, bigNodeSet, typeDict):
                 continue
             columns = line.strip().split('\t')
             obj = ChemGeneIXNS(columns)
-            relnTup = (obj.meshID, obj.entrezGeneID)
-            relnDict[relnTup]['interaction'].add(obj.interaction)
-            relnDict[relnTup]['interactionAction'].update(obj.getInteractionActions())
-            relnDict[relnTup]['type'].update(obj.getInteractionTypes())
+            objList.append(obj)
+    print len(objList)
+    return objList
+
+
+def writeRelns(objList):
+    relnSet = set()
+    for o in objList:
+       for action in o.getInteractionActions():
+            relnTup = (o.meshID, action, o.entrezGeneID)
+            if relnTup in relnSet:
+                continue
+            else:
+                relnString = '%s|Comparative_Toxicogenetics_Database|%s|%s'
+
+
+        # print o.meshID
+        # print o.entrezGeneID
+        # print o.interaction
+        # print o.getInteractionActions()
+        # print '\n\n'
+
+
+
+
+
+
+
+
+        #     relnTup = (obj.meshID, obj.entrezGeneID)
+        #     if relnTup == ('C534883', '4149'):
+        #         relnDict[relnTup]['interaction'].add(obj.interaction)
+        #         relnDict[relnTup]['interactionAction'].update(obj.getInteractionActions())
+        #         relnDict[relnTup]['type'].update(obj.getInteractionTypes())
+        # for a, b in relnDict.iteritems():
+        #     print a, b
             # relnDict[relnTup]['code']
             # relnDict[relnTup]['description']
             # relnDict[relnTup]['parentCode']
-    for k, v in relnDict.iteritems():
-        print k, '\t', v, '\n\n'
+    # for k, v in relnDict.iteritems():
+    #     print k, '\t', v, '\n\n'
 
 
 
