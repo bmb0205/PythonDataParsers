@@ -83,7 +83,7 @@ def main(argv):
             meshNodeOutFile.write("source_id:ID|source|term|synonyms:string[]|semantic_type:string[]|mesh_tree_number|:LABEL\n")
             meshRelnOutFile.write(":START_ID|source|:END_ID|Category|:TYPE\n")
 
-            bigNodeSet = set()
+            totalMeshNodeSet = set()
             """ PARRRSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE """
             print os.listdir(topDir)
             sourceList = os.listdir(topDir)[::-1]
@@ -189,7 +189,7 @@ def main(argv):
                         print "%s" % meshFilePath
                         if not meshFilePath.endswith('mtrees2015.bin'):
                             fileNodeCount, treeRelnDict, nodeSet = meshParser.parseMeSH(meshFilePath, fileNodeCount, meshNodeOutFile)
-                            bigNodeSet.update(nodeSet)
+                            totalMeshNodeSet.update(nodeSet)
                             bigRelnDict.update(treeRelnDict)
                             finalCount += fileNodeCount
                             print "\t%s nodes have been created from this file\n" % locale.format('%d', fileNodeCount, True)
@@ -214,8 +214,9 @@ def main(argv):
                             if ctdFile == "CTD_chem_gene_ixn_types.tsv":
                                 typeDict = ctdParser.ixnTypes(ctdFilePath)
                                 tempCtdFilePath = newRoot + "CTD_chem_gene_ixns.tsv"
-                                objList = ctdParser.parseCTD(tempCtdFilePath, bigNodeSet, typeDict)
-                                ctdParser.writeRelns(objList)
+                                objList = ctdParser.parseCTD(tempCtdFilePath, totalMeshNodeSet, typeDict)
+                                print totalMeshNodeSet
+                                ctdParser.writeRelnsAndMissingNodes(objList, totalMeshNodeSet)
 ######################
 ######################
 ######################

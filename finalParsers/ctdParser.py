@@ -48,11 +48,14 @@ def ixnTypes(ctdFilePath):
     return typeDict
 
 
-def parseCTD(tempCtdFilePath, bigNodeSet, typeDict):
-    """ """
+def parseCTD(tempCtdFilePath, totalMeshNodeSet, typeDict):
+    """ 
+    totalMeshNodeSet is set of all MeSH nodes
+    """
     mySet = set()
+    objDict = defaultdict(lambda: defaultdictionary(set))
     objList = list()
-    # print 'bignodeset ', len(bigNodeSet)
+    # print 'totalMESHnodeset ', len(totalMeshNodeSet) # 259,978
     count = 0
     relnDict = defaultdict(lambda: defaultdict(set))
     with open(tempCtdFilePath, 'rU') as inFile:
@@ -62,19 +65,35 @@ def parseCTD(tempCtdFilePath, bigNodeSet, typeDict):
             columns = line.strip().split('\t')
             obj = ChemGeneIXNS(columns)
             objList.append(obj)
-    print len(objList)
+            # objDict[obj.meshID][]
     return objList
 
 
-def writeRelns(objList):
+def writeRelnsAndMissingNodes(objList, totalMeshNodeSet):
     relnSet = set()
+    Acount = 0
+    newMeshNodeDict = defaultdict(lambda: defaultdict(set))
     for o in objList:
-       for action in o.getInteractionActions():
-            relnTup = (o.meshID, action, o.entrezGeneID)
-            if relnTup in relnSet:
-                continue
-            else:
-                relnString = '%s|Comparative_Toxicogenetics_Database|%s|%s'
+
+        # make new MeSH nodes if they aren't present from parsing MeSH files already
+        if o.meshID not in totalMeshNodeSet:
+            Acount += 1
+            print vars(o)
+
+
+        else:
+            continue
+    print Acount
+
+            # for action in o.getInteractionActions():
+            #     relnTup = (o.meshID, action, o.entrezGeneID)
+
+
+
+            #     if relnTup in relnSet:
+            #         continue
+            #     else:
+            #         relnString = '%s|Comparative_Toxicogenetics_Database|%s|%s'
 
 
         # print o.meshID
@@ -107,7 +126,7 @@ def writeRelns(objList):
 
             # relnSet.update(newObject.getInteractionActions())
     #         mySet.add(columns[1].strip())
-    #         if columns[1].strip() not in bigNodeSet:
+    #         if columns[1].strip() not in totalMeshNodeSet:
     #             count += 1
     #             # print columns[1].strip()
     # print len(mySet), count

@@ -27,7 +27,7 @@ Written by: Brandon Burciaga
 """
 
 
-def parseMeSH(meshFilePath, count, meshNodeOutFile):
+def parseMeSH(meshFilePath):#, count, meshNodeOutFile):
     """
     Creates defaultdict of MeSH block attributes.
     Feeds dict and outfile into writeMeSHNodes() function.
@@ -77,8 +77,8 @@ def parseMeSH(meshFilePath, count, meshNodeOutFile):
             if treeNums:
                 for treeNum in treeNums:
                     treeRelnDict[treeNum] = uniqueID
-            writeMeSHNodes(meshNodeDict, meshNodeOutFile)
-    return len(fileNodeSet), treeRelnDict, fileNodeSet
+            # writeMeSHNodes(meshNodeDict, meshNodeOutFile)
+    return fileNodeSet #len(fileNodeSet), treeRelnDict, 
 
 
 def getBlock(meshFile):
@@ -207,7 +207,7 @@ def main(argv):
             meshNodeOutFile.write("source_id:ID|source|term|synonyms:string[]|semantic_type:string[]|mesh_tree_number|:LABEL\n")
             meshRelnOutFile.write(":START_ID|source|:END_ID|Category|:TYPE\n")
 
-            bigNodeSet = set()
+            totalMeshNodeSet = set()
             for root, dirs, files in os.walk(topDir):
                 """ MESH """
                 if root.endswith("MeSH"):
@@ -223,19 +223,20 @@ def main(argv):
                         print "%s" % meshFilePath
                         if not meshFilePath.endswith('mtrees2015.bin'):
                             fileNodeCount, treeRelnDict, nodeSet = parseMeSH(meshFilePath, fileNodeCount, meshNodeOutFile)
-                            bigNodeSet.update(nodeSet)
+                            totalMeshNodeSet.update(nodeSet)
                             bigRelnDict.update(treeRelnDict)
                             finalCount += fileNodeCount
                             print "\t%s nodes have been created from this file\n" % locale.format('%d', fileNodeCount, True)
-                        else:
-                            relnCount = parseTree(meshFilePath, bigRelnDict, meshRelnOutFile)
-                            print "\t%s relationships have been created from this file\n" % locale.format('%d', relnCount, True)
+                    print len(totalMeshNodeSet)
+                        # else:
+                        #     relnCount = parseTree(meshFilePath, bigRelnDict, meshRelnOutFile)
+                        #     print "\t%s relationships have been created from this file\n" % locale.format('%d', relnCount, True)
 
-                    endTime = time.clock()
-                    duration = endTime - startTime
-                    print ("\n%s total NLM MeSH nodes and %s total relationships have been created..." %
-                           (locale.format('%d', finalCount, True), locale.format('%d', relnCount, True)))
-                    print "\nIt took %s seconds to create all NLM MeSH nodes and relationships \n" % duration
+                    # endTime = time.clock()
+                    # duration = endTime - startTime
+                    # print ("\n%s total NLM MeSH nodes and %s total relationships have been created..." %
+                    #        (locale.format('%d', finalCount, True), locale.format('%d', relnCount, True)))
+                    # print "\nIt took %s seconds to create all NLM MeSH nodes and relationships \n" % duration
 
 if __name__ == "__main__":
     main(sys.argv[1:])
