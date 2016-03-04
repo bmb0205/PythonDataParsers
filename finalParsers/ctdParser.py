@@ -78,7 +78,7 @@ def writeRelnsAndMissingNodes(objList, totalMeshNodeSet):
         # make new MeSH nodes if they aren't present from parsing MeSH files already
         if o.meshID not in totalMeshNodeSet:
             Acount += 1
-            print vars(o)
+            missingSet.add(o.meshID)
 
 
         else:
