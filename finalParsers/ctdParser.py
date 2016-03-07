@@ -7,12 +7,10 @@ import locale
 import os
 from collections import defaultdict
 from ctdClasses import ChemGeneIXNS
-
+from ctdClasses import ChemDisease
 
 """
-##################################################################################################################
-##############################   Comparative Toxicogenomics Database (CTD) Parser   ####################################
-##################################################################################################################
+Comparative Toxicogenomics Database (CTD) Parser
 
 Written by: Brandon Burciaga
 
@@ -30,7 +28,7 @@ Written by: Brandon Burciaga
 def ixnTypes(ctdFilePath):
     """ 
     ctdFilePath: /path/CTD_chem_gene_ixn_types.tsv
-    Returns typeDict which maps meshID to code, description and parent code 
+    Returns typeDict which maps meshID to code, description and parent code
     """
     typeDict = defaultdict(lambda: defaultdict(str))
     with open(ctdFilePath, 'rU') as inFile:
@@ -38,26 +36,21 @@ def ixnTypes(ctdFilePath):
             if line.startswith('#'):
                 continue
             columns = line.strip().split('\t')
-            meshID = columns[0]
-            typeDict[meshID]['code'] = columns[1]
-            typeDict[meshID]['description'] = columns[2]
+            typeName = columns[0]
+            typeDict[typeName]['code'] = columns[1]
+            typeDict[typeName]['description'] = columns[2]
             try:
-                typeDict[meshID]['parentCode'] = columns[3]
+                typeDict[typeName]['parentCode'] = columns[3]
             except:
-                typeDict[meshID]['parentCode'] = ''
+                typeDict[typeName]['parentCode'] = ''
     return typeDict
 
 
-def parseCTD(tempCtdFilePath, totalMeshNodeSet, typeDict):
-    """ 
+def parseChemGene(tempCtdFilePath, totalMeshNodeSet):
+    """
     totalMeshNodeSet is set of all MeSH nodes
     """
-    mySet = set()
-    objDict = defaultdict(lambda: defaultdictionary(set))
     objList = list()
-    # print 'totalMESHnodeset ', len(totalMeshNodeSet) # 259,978
-    count = 0
-    relnDict = defaultdict(lambda: defaultdict(set))
     with open(tempCtdFilePath, 'rU') as inFile:
         for line in inFile:
             if line.startswith('#'):
@@ -65,71 +58,31 @@ def parseCTD(tempCtdFilePath, totalMeshNodeSet, typeDict):
             columns = line.strip().split('\t')
             obj = ChemGeneIXNS(columns)
             objList.append(obj)
-            # objDict[obj.meshID][]
     return objList
 
 
-def writeRelnsAndMissingNodes(objList, totalMeshNodeSet):
-    relnSet = set()
-    Acount = 0
-    newMeshNodeDict = defaultdict(lambda: defaultdict(set))
+def writeChemGeneRelns(objList, typeDict, totalMeshNodeSet, ctdRelnOutFile):
+    count = 0
     for o in objList:
+        for action in o.getInteractionActions():
+            typeName = action.split('_')[1]
+            relnString = ("%s|Comparative_Toxicogenomics_Database|%s|%s|%s|%s|%s|%s|%s|%s|%s\n" %
+                          (o.meshID, o.entrezGeneID, o.interaction, o.pubmedID, typeDict[typeName]['description'],
+                           typeDict[typeName]['code'], typeDict[typeName]['parentCode'], o.getOrganism(),
+                           o.getOrganismID(), action))
+            ctdRelnOutFile.write(relnString)
+            count += 1
+    print "\t%s relationships have been created from this file\n" % locale.format('%d', count, True)
 
-        # make new MeSH nodes if they aren't present from parsing MeSH files already
-        if o.meshID not in totalMeshNodeSet:
-            Acount += 1
-            missingSet.add(o.meshID)
-
-
-        else:
-            continue
-    print Acount
-
-            # for action in o.getInteractionActions():
-            #     relnTup = (o.meshID, action, o.entrezGeneID)
-
-
-
-            #     if relnTup in relnSet:
-            #         continue
-            #     else:
-            #         relnString = '%s|Comparative_Toxicogenetics_Database|%s|%s'
-
-
-        # print o.meshID
-        # print o.entrezGeneID
-        # print o.interaction
-        # print o.getInteractionActions()
-        # print '\n\n'
-
-
-
-
-
-
-
-
-        #     relnTup = (obj.meshID, obj.entrezGeneID)
-        #     if relnTup == ('C534883', '4149'):
-        #         relnDict[relnTup]['interaction'].add(obj.interaction)
-        #         relnDict[relnTup]['interactionAction'].update(obj.getInteractionActions())
-        #         relnDict[relnTup]['type'].update(obj.getInteractionTypes())
-        # for a, b in relnDict.iteritems():
-        #     print a, b
-            # relnDict[relnTup]['code']
-            # relnDict[relnTup]['description']
-            # relnDict[relnTup]['parentCode']
-    # for k, v in relnDict.iteritems():
-    #     print k, '\t', v, '\n\n'
-
-
-
-            # relnSet.update(newObject.getInteractionActions())
-    #         mySet.add(columns[1].strip())
-    #         if columns[1].strip() not in totalMeshNodeSet:
-    #             count += 1
-    #             # print columns[1].strip()
-    # print len(mySet), count
+def parseChemDisease(ctdFilePath):
+    """ """
+    with open(ctdFilePath, 'rU') as inFile:
+        for line in inFile:
+            if line.startswith('#'):
+                continue
+            columns = line.strip().split('\t')
+            obj = ChemDisease(columns)
+            print obj.getEndID()
 
 ##################################################################################################################
 ##########################################   General   #########################################################

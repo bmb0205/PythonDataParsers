@@ -80,24 +80,23 @@ def main(argv):
             """ Medical Subject Headings Database (MeSH) """
             meshNodeOutFile = open((outPath + 'meshNodeOut.csv'), 'w')
             meshRelnOutFile = open((outPath + 'meshRelnOut.csv'), 'w')
-            meshNodeOutFile.write("source_id:ID|source|term|synonyms:string[]|semantic_type:string[]|mesh_tree_number|:LABEL\n")
+            meshNodeOutFile.write("Source_id:ID|Source|Term|Synonyms:string[]|Semantic_Type:string[]|Mesh_TreeNumber|:LABEL\n")
             meshRelnOutFile.write(":START_ID|source|:END_ID|Category|:TYPE\n")
 
+            """ Comparative Toxicogenomics Database (CTD) """
+            ctdRelnOutFile = open((outPath + 'ctdRelnOut.csv'), 'w')
+            ctdRelnOutFile.write(":START_ID|Source|:END_ID|Interaction|Pubmed_ID|Type_Description|Type_Code|"
+                                 "Parent_Code|Studied_Organism|OrganismID|:TYPE\n")
+
             totalMeshNodeSet = set()
-            """ PARRRSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE """
+
             print os.listdir(topDir)
             sourceList = os.listdir(topDir)[::-1]
             print '\n\n', sourceList
 
             for source in sourceList:
-                # if os.path.isdir(source):
                 sourcePath = os.path.join(topDir + source)
                 fileList = os.listdir(sourcePath)
-
-######################
-######################
-######################
-######################
 
                 """ Therapeutic Target Database """
                 if sourcePath.endswith('TTD'):
@@ -181,42 +180,44 @@ def main(argv):
                     print "\n\n\n================================ PARSING NLM MEDICAL SUBJECT HEADINGS (MeSH) DATABASE ================================"
                     print "\nProcessing files in:\n\t%s\n" % sourcePath
                     finalCount = 0
-                    fileNodeCount = 0
                     bigRelnDict = dict()
                     sortedFiles = sorted(fileList, key=len)
                     for meshFile in sortedFiles:
                         meshFilePath = os.path.join(sourcePath, meshFile)
                         print "%s" % meshFilePath
-                        if not meshFilePath.endswith('mtrees2015.bin'):
-                            fileNodeCount, treeRelnDict, nodeSet = meshParser.parseMeSH(meshFilePath, fileNodeCount, meshNodeOutFile)
-                            totalMeshNodeSet.update(nodeSet)
+                        if not meshFilePath.endswith('mtrees2016.bin'):
+                            treeRelnDict, fileNodeSet = meshParser.parseMeSH(meshFilePath, meshNodeOutFile)
+                            totalMeshNodeSet.update(fileNodeSet)
                             bigRelnDict.update(treeRelnDict)
-                            finalCount += fileNodeCount
-                            print "\t%s nodes have been created from this file\n" % locale.format('%d', fileNodeCount, True)
+                            finalCount += len(fileNodeSet)
+                            print 'len(fileNodeSet): ', len(fileNodeSet)
+                            print "\t%s nodes have been created from this file\n" % locale.format('%d', len(fileNodeSet), True)
                         else:
                             relnCount = meshParser.parseTree(meshFilePath, bigRelnDict, meshRelnOutFile)
                             print "\t%s relationships have been created from this file\n" % locale.format('%d', relnCount, True)
 
-                    endTime = time.clock()
-                    duration = endTime - startTime
-                    print ("\n%s total NLM MeSH nodes and %s total relationships have been created..." %
-                           (locale.format('%d', finalCount, True), locale.format('%d', relnCount, True)))
-                    print "\nIt took %s seconds to create all NLM MeSH nodes and relationships \n" % duration
+                    # endTime = time.clock()
+                    # duration = endTime - startTime
+                    # print ("\n%s total NLM MeSH nodes and %s total relationships have been created..." %
+                    #        (locale.format('%d', finalCount, True), locale.format('%d', relnCount, True)))
+                    # print "\nIt took %s seconds to create all NLM MeSH nodes and relationships \n" % duration
 
                     """ Comparative Toxicogenomics Database """
                     newRoot = topDir + "CTD/"
                     if newRoot.endswith("CTD/"):
-                        print "\n\n\n================================ PARSING COMPARATIVE TOXICOGENOMIC DATABASE(CTD) ==================================="
+                        print "\n\n\n================================ PARSING COMPARATIVE TOXICOGENOMIC DATABASE (CTD) ==================================="
                         print "\nProcessing files in:\n\t%s\n" % newRoot
                         ctdFileList = os.listdir(newRoot)
                         for ctdFile in ctdFileList:
                             ctdFilePath = os.path.join(newRoot, ctdFile)
                             if ctdFile == "CTD_chem_gene_ixn_types.tsv":
                                 typeDict = ctdParser.ixnTypes(ctdFilePath)
-                                tempCtdFilePath = newRoot + "CTD_chem_gene_ixns.tsv"
-                                objList = ctdParser.parseCTD(tempCtdFilePath, totalMeshNodeSet, typeDict)
-                                print totalMeshNodeSet
-                                ctdParser.writeRelnsAndMissingNodes(objList, totalMeshNodeSet)
+                                # tempCtdFilePath = newRoot + "CTD_chem_gene_ixns.tsv"
+                                # objList = ctdParser.parseChemGene(tempCtdFilePath, totalMeshNodeSet)
+                                # ctdParser.writeChemGeneRelns(objList, typeDict, totalMeshNodeSet, ctdRelnOutFile)
+                            elif ctdFile == "CTD_chemicals_diseases.tsv":
+                                ctdParser.parseChemDisease(ctdFilePath)
+
 ######################
 ######################
 ######################

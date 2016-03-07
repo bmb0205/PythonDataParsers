@@ -18,16 +18,16 @@ Written by: Brandon Burciaga
 * Outfiles are .csv (pipe delimited) and generated with first line header demonstrating
     the format of the rest of the file (in columns)
 * See howToRun() method for instructions using this script.
-* Infile(s) [MeSH files, 2015 versions used]:
-    * 2015 MeSH Descriptor (d2015.bin), https://www.nlm.nih.gov/mesh/download_mesh.html?
-    * 2015 MeSH Qualifier (q2015.bin), https://www.nlm.nih.gov/mesh/download_mesh.html?
-    * 2015 MeSH Supplementary Concept (c2015.bin), https://www.nlm.nih.gov/mesh/download_mesh.html?
-    * 2015 MeSh Tree, (mtrees2015.bin) https://www.nlm.nih.gov/mesh/download_mesh.html?
+* Infile(s) [MeSH files, 2016 versions used]:
+    * 2015 MeSH Descriptor (d2016.bin), https://www.nlm.nih.gov/mesh/download_mesh.html?
+    * 2015 MeSH Qualifier (q2016.bin), https://www.nlm.nih.gov/mesh/download_mesh.html?
+    * 2015 MeSH Supplementary Concept (c2016.bin), https://www.nlm.nih.gov/mesh/download_mesh.html?
+    * 2015 MeSh Tree, (mtrees2016.bin) https://www.nlm.nih.gov/mesh/download_mesh.html?
 * Outfile(s): meshNodeOut.csv, meshRelnOut.csv
 """
 
 
-def parseMeSH(meshFilePath):#, count, meshNodeOutFile):
+def parseMeSH(meshFilePath, meshNodeOutFile):
     """
     Creates defaultdict of MeSH block attributes.
     Feeds dict and outfile into writeMeSHNodes() function.
@@ -42,6 +42,7 @@ def parseMeSH(meshFilePath):#, count, meshNodeOutFile):
     """
     treeRelnDict = dict()
     fileNodeSet = set()
+
     with open(meshFilePath, 'rU') as meshFile:
         for block in getBlock(meshFile):  # generator object
             meshNodeDict = defaultdict(set)
@@ -77,8 +78,8 @@ def parseMeSH(meshFilePath):#, count, meshNodeOutFile):
             if treeNums:
                 for treeNum in treeNums:
                     treeRelnDict[treeNum] = uniqueID
-            # writeMeSHNodes(meshNodeDict, meshNodeOutFile)
-    return fileNodeSet #len(fileNodeSet), treeRelnDict, 
+            writeMeSHNodes(meshNodeDict, meshNodeOutFile)
+    return treeRelnDict, fileNodeSet
 
 
 def getBlock(meshFile):
