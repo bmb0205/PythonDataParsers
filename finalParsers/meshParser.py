@@ -5,6 +5,7 @@ import os
 import getopt
 import locale
 import time
+import general
 from collections import defaultdict
 """
 ##################################################################################################################
@@ -27,7 +28,52 @@ Written by: Brandon Burciaga
 """
 
 
-def parseMeSH(meshFilePath, meshNodeOutFile):
+class MeSHParser(object):
+
+    def __init__(self, outPath, sourcePath, fileList):
+        self.sourcePath = sourcePath
+        self.fileList = fileList
+        self.outPath = outPath
+
+    def parseMeSH(self):
+        """ Medical Subject Headings Database (MeSH) """
+
+        print "\n\n\n================= PARSING NLM MEDICAL SUBJECT HEADINGS (MeSH) DATABASE ================="
+
+        startTime = time.clock()
+        totalMeshNodeSet = set()
+
+        meshNodeOutFile = open((self.outPath + 'meshNodeOut.csv'), 'w')
+        meshRelnOutFile = open((self.outPath + 'meshRelnOut.csv'), 'w')
+        meshNodeOutFile.write("Source_id:ID|Source|Term|Synonyms:string[]|Semantic_Type:string[]|Mesh_TreeNumber|:LABEL\n")
+        meshRelnOutFile.write(":START_ID|source|:END_ID|Category|:TYPE\n")
+
+        print "\nProcessing files in:\n\t%s\n" % self.sourcePath
+        finalCount = 0
+        bigRelnDict = dict()
+        sortedFiles = sorted(self.fileList, key=len)
+        for meshFile in sortedFiles:
+            meshFilePath = os.path.join(self.sourcePath, meshFile)
+            print "%s" % meshFilePath
+            if not meshFilePath.endswith('mtrees2016.bin'):
+                treeRelnDict, fileNodeSet = meshData(meshFilePath, meshNodeOutFile)
+                totalMeshNodeSet.update(fileNodeSet)
+                bigRelnDict.update(treeRelnDict)
+                finalCount += len(fileNodeSet)
+                print "\t%s nodes have been created from this file\n" % locale.format('%d', len(fileNodeSet), True)
+            else:
+                relnCount = parseTree(meshFilePath, bigRelnDict, meshRelnOutFile)
+                print "\t%s relationships have been created from this file\n" % locale.format('%d', relnCount, True)
+
+        endTime = time.clock()
+        duration = endTime - startTime
+        print ("\n%s total NLM MeSH nodes and %s total relationships have been created..." %
+               (locale.format('%d', finalCount, True), locale.format('%d', relnCount, True)))
+        print "\nIt took %s seconds to create all NLM MeSH nodes and relationships \n" % duration
+        return totalMeshNodeSet
+
+
+def meshData(meshFilePath, meshNodeOutFile):
     """
     Creates defaultdict of MeSH block attributes.
     Feeds dict and outfile into writeMeSHNodes() function.
@@ -155,32 +201,10 @@ def getType(typeLetter):
 ##################################################################################################################
 
 
-def createOutDirectory(topDir):
-    """ Creates path for out directory and outfiles """
-    outPath = (str(topDir) + "csv_out/")
-    if not os.path.exists(outPath):
-        os.makedirs(outPath)
-        print "\n\n\t\t\tOutfile directory path not found...\n\t\tOne created at %s\n" % outPath
-    return outPath
-
-
 def clean(string):
     """ cleans lines of any characters that may affect neo4j database creation or import """
     cleaned = string.replace(";", ",")
     return cleaned
-
-
-def howToRun():
-    """
-    Instructs users how to use script.
-    opts/args: -h, help
-    """
-    print "\n\t\t * Run as: python /path/to/this/script.py -p /path/to/top/directory"
-    print "\n\t\t * Example top directory: /Users/username/KnowledgeBase/"
-    print "\n\t\t * Top directory structure: \n\t\t\t * /Users/username/KnowledgeBase/<subdir>/<files>"
-    print "\t\t\t\t * <subdir> : MeSH/"
-    print "\t\t\t\t * <subfiles> : *.bin\n"
-    sys.exit()
 
 
 def main(argv):
@@ -189,55 +213,30 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, 'hp:', ['help', 'dirPath='])
         if len(argv) == 0:
-            howToRun()
+            general.howToRun()
     except getopt.GetoptError:
-        howToRun()
+        general.howToRun()
     for opt, arg in opts:
         if opt in ['-h', '--help']:
-            howToRun()
+            general.howToRun()
         elif opt in ['-p', '--dirPath']:
             if not arg.endswith("/"):
                 arg = arg + "/"
-            startTime = time.clock()
             topDir = arg
             locale.setlocale(locale.LC_ALL, "")
-            outPath = createOutDirectory(topDir)
+            outPath = general.createOutDirectory(topDir)
+            sourceList = os.listdir(topDir)[::-1]
 
-            meshNodeOutFile = open((outPath + 'meshNodeOut.csv'), 'w')
-            meshRelnOutFile = open((outPath + 'meshRelnOut.csv'), 'w')
-            meshNodeOutFile.write("source_id:ID|source|term|synonyms:string[]|semantic_type:string[]|mesh_tree_number|:LABEL\n")
-            meshRelnOutFile.write(":START_ID|source|:END_ID|Category|:TYPE\n")
+            for source in sourceList:
+                sourcePath = os.path.join(topDir + source)
+                fileList = os.listdir(sourcePath)
 
-            totalMeshNodeSet = set()
-            for root, dirs, files in os.walk(topDir):
-                """ MESH """
-                if root.endswith("MeSH"):
-                    print "\n\n\n================================ PARSING NLM MEDICAL SUBJECT HEADINGS (MeSH) DATABASE ================================"
-                    print "\nProcessing files in:\n"
-                    startTime = time.clock()
-                    finalCount = 0
-                    fileNodeCount = 0
-                    bigRelnDict = dict()
-                    sortedFiles = sorted(files, key=len)
-                    for meshFile in sortedFiles:
-                        meshFilePath = os.path.join(root, meshFile)
-                        print "%s" % meshFilePath
-                        if not meshFilePath.endswith('mtrees2015.bin'):
-                            fileNodeCount, treeRelnDict, nodeSet = parseMeSH(meshFilePath, fileNodeCount, meshNodeOutFile)
-                            totalMeshNodeSet.update(nodeSet)
-                            bigRelnDict.update(treeRelnDict)
-                            finalCount += fileNodeCount
-                            print "\t%s nodes have been created from this file\n" % locale.format('%d', fileNodeCount, True)
-                    print len(totalMeshNodeSet)
-                        # else:
-                        #     relnCount = parseTree(meshFilePath, bigRelnDict, meshRelnOutFile)
-                        #     print "\t%s relationships have been created from this file\n" % locale.format('%d', relnCount, True)
+                # """ Medical Subject Headings (MeSH) """
+                if sourcePath.endsWith('MeSH'):
+                    mesh = MeSHParser(outPath, sourcePath, fileList)
+                    totalMeshNodeSet = mesh.parseMeSH()
 
-                    # endTime = time.clock()
-                    # duration = endTime - startTime
-                    # print ("\n%s total NLM MeSH nodes and %s total relationships have been created..." %
-                    #        (locale.format('%d', finalCount, True), locale.format('%d', relnCount, True)))
-                    # print "\nIt took %s seconds to create all NLM MeSH nodes and relationships \n" % duration
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -5,6 +5,7 @@ import time
 import getopt
 import locale
 import os
+import general
 from collections import defaultdict
 
 
@@ -26,6 +27,67 @@ Written by: Brandon Burciaga
     * target-disease_TTD2016.txt, http://database.idrb.cqu.edu.cn/TTD/TTD_Download.asp
 * Outfile(s): ttdNodeOut.csv, ttdNodeOut2.csv, wikiNodeOut.csv, KEGGNodeOut.csv, targetKEGGRelnOut.csv, targetWikiRelnOut.csv
 """
+
+
+class TTDParser(object):
+
+    def __init__(self, outPath, sourcePath, fileList):
+        self.sourcePath = sourcePath
+        self.fileList = fileList
+        self.outPath = outPath
+
+    def parseTTD(self):
+        """ Therapeutic Target Database """
+
+        print "\n\n\n============== PARSING THERAPEUTIC TARGET DATABASE (TTD) ==============="
+
+        startTime = time.clock()
+
+        # Create all outfiles, open them, and write header lines
+        ttdNodeOutFile = open((self.outPath + 'ttdNodeOut.csv'), 'w')
+        targetDiseaseNodeOutFile = open((self.outPath + 'ttdNodeOut2.csv'), 'w')
+        KEGGNodeOutFile = open((self.outPath + 'KEGGNodeOut.csv'), 'w')
+        KEGGRelnOutFile = open((self.outPath + 'targetKEGGRelnOut.csv'), 'w')
+        wikiNodeOutFile = open((self.outPath + 'wikiNodeOut.csv'), 'w')
+        wikiRelnOutFile = open((self.outPath + 'targetWikiRelnOut.csv'), 'w')
+        ttdNodeOutFile.write("Source_ID:ID|Name|Source|Function|Diseases|Synonyms:string[]|KEGG_Pathway|Wiki_Pathway|:LABEL\n")
+        targetDiseaseNodeOutFile.write("Source_ID:ID|Name|Source|Diseases:String[]|:LABEL\n")
+        KEGGNodeOutFile.write("Source_ID:ID|Name|Source|:LABEL\n")
+        KEGGRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
+        wikiNodeOutFile.write("Source_ID:ID|Name|Source|:LABEL\n")
+        wikiRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
+
+        print "\nProcessing files in:\n\t%s\n" % self.sourcePath
+
+        for ttdFile in self.fileList:
+
+            ttdFilePath = os.path.join(self.sourcePath, ttdFile)
+
+            if ttdFilePath.endswith("TTD_download_raw.txt"):
+                print ttdFilePath
+                nodeDict, nodeSet = parseTTDNodes(ttdFilePath)
+                nodeCount = writeTTDNodes(nodeDict, ttdNodeOutFile)
+
+                tempPath = self.sourcePath + "/target-disease_TTD2016.txt"
+                print tempPath
+                targetDict = parseTargetDisease(tempPath, nodeSet)
+                nodeCount2 = writeTargetDiseaseNodes(targetDict, targetDiseaseNodeOutFile)
+
+            elif ttdFilePath.endswith("Target-KEGGpathway_all.txt"):
+                print ttdFilePath
+                KEGGRelnCount = parseTargetKEGG(ttdFilePath, KEGGNodeOutFile, KEGGRelnOutFile)
+
+            elif ttdFilePath.endswith("Target-wikipathway_all.txt"):
+                print ttdFilePath
+                wikiRelnCount = parseTargetWiki(ttdFilePath, wikiNodeOutFile, wikiRelnOutFile)
+
+        endTime = time.clock()
+        duration = endTime - startTime
+        print ("\n%s total Therapeutic Target Database nodes have been created." %
+               (locale.format('%d', (nodeCount + nodeCount2), True)))
+        print ("\n%s total Therapeutic Target Database relationships have been created." %
+               (locale.format('%d', (KEGGRelnCount + wikiRelnCount), True)))
+        print "\nIt took %s seconds to create all TTD nodes and relationships\n" % duration
 
 
 def parseTTDNodes(ttdFilePath):
@@ -134,32 +196,6 @@ def parseTargetWiki(ttdFilePath, wikiNodeOutFile, wikiRelnOutFile):
            (locale.format("%d", len(nodeSet), True), locale.format("%d", wikiCount, True)))
     return wikiCount
 
-##################################################################################################################
-##########################################   General   #########################################################
-##################################################################################################################
-
-
-def createOutDirectory(topDir):
-    """ Creates path for out directory and outfiles """
-    outPath = (str(topDir) + "csv_out/")
-    if not os.path.exists(outPath):
-        os.makedirs(outPath)
-        print "\n\n\t\t\tOutfile directory path not found...\n\t\tOne created at %s\n" % outPath
-    return outPath
-
-
-def howToRun():
-    """
-    Instructs users how to use script.
-    opts/args: -h, help
-    """
-    print "\n\t\t * Run as: python /path/to/this/script.py -p /path/to/top/directory"
-    print "\n\t\t * Example top directory: /Users/username/KnowledgeBase/"
-    print "\n\t\t * Top directory structure: \n\t\t\t * /Users/username/KnowledgeBase/<subdir>/<files>"
-    print "\t\t\t\t * <subdir> : TTD/"
-    print "\t\t\t\t * <subfiles> : *"
-    sys.exit()
-
 
 def main(argv):
     """ If run as main script, function executes with user input """
@@ -167,67 +203,30 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hp:", ["help", "dirPath="])
         if len(argv) == 0:
-            howToRun()
+            general.howToRun()
     except getopt.GetoptError:
-        howToRun()
+        general.howToRun()
     for opt, arg in opts:
         if opt in ['-h', '--help']:
-            howToRun()
+            general.howToRun()
         elif opt in ("-p", "--dirPath"):
             if not arg.endswith("/"):
                 arg = arg + "/"
-            startTime = time.clock()
+
             topDir = arg
             locale.setlocale(locale.LC_ALL, "")
-            outPath = createOutDirectory(topDir)
+            outPath = general.createOutDirectory(topDir)
+            sourceList = os.listdir(topDir)[::-1]
 
-            """ Therapeutic Target Database """
-            nodeOutFile = open((outPath + 'ttdNodeOut.csv'), 'w')
-            targetDiseaseNodeOutFile = open((outPath + 'ttdNodeOut2.csv'), 'w')
-            KEGGNodeOutFile = open((outPath + 'KEGGNodeOut.csv'), 'w')
-            KEGGRelnOutFile = open((outPath + 'targetKEGGRelnOut.csv'), 'w')
-            wikiNodeOutFile = open((outPath + 'wikiNodeOut.csv'), 'w')
-            wikiRelnOutFile = open((outPath + 'targetWikiRelnOut.csv'), 'w')
-
-            nodeOutFile.write("Source_ID:ID|Name|Source|Function|Diseases|Synonyms:string[]|KEGG_Pathway|Wiki_Pathway|:LABEL\n")
-            targetDiseaseNodeOutFile.write("Source_ID:ID|Name|Source|Diseases:String[]|:LABEL\n")
-            KEGGNodeOutFile.write("Source_ID:ID|Name|Source|:LABEL\n")
-            KEGGRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
-            wikiNodeOutFile.write("Source_ID:ID|Name|Source|:LABEL\n")
-            wikiRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
-
-            for root, dirs, files in os.walk(topDir):
+            for source in sourceList:
+                sourcePath = os.path.join(topDir + source)
+                fileList = os.listdir(sourcePath)
 
                 """ Therapeutic Target Database """
-                if root.endswith("TTD"):
-                    print "\n\n\n================================ PARSING Therapeutic Target Database (TTD) ==================================="
-                    print "\nProcessing files in:\n"
-                    for ttdFile in files:
-                        ttdFilePath = os.path.join(root, ttdFile)
+                if sourcePath.endswith('TTD'):
+                    ttd = TTDParser(outPath, sourcePath, fileList)
+                    ttd.parseTTD()
 
-                        if ttdFilePath.endswith("TTD_download_raw.txt"):
-                            print ttdFilePath
-                            nodeDict, nodeSet = parseTTDNodes(ttdFilePath)
-                            nodeCount = writeTTDNodes(nodeDict, nodeOutFile)
-
-                            tempPath = root + "/target-disease_TTD2016.txt"
-                            print tempPath
-                            targetDict = parseTargetDisease(tempPath, nodeSet)
-                            nodeCount2 = writeTargetDiseaseNodes(targetDict, targetDiseaseNodeOutFile)
-                        elif ttdFilePath.endswith("Target-KEGGpathway_all.txt"):
-                            print ttdFilePath
-                            KEGGRelnCount = parseTargetKEGG(ttdFilePath, KEGGNodeOutFile, KEGGRelnOutFile)
-                        elif ttdFilePath.endswith("Target-wikipathway_all.txt"):
-                            print ttdFilePath
-                            wikiRelnCount = parseTargetWiki(ttdFilePath, wikiNodeOutFile, wikiRelnOutFile)
-
-                    endTime = time.clock()
-                    duration = endTime - startTime
-                    print ("\n%s total Therapeutic Target Database nodes have been created." %
-                           (locale.format('%d', (nodeCount + nodeCount2), True)))
-                    print ("\n%s total Therapeutic Target Database relationships have been created." %
-                           (locale.format('%d', (KEGGRelnCount + wikiRelnCount), True)))
-                    print "\nIt took %s seconds to create all TTD nodes and relationships\n" % duration
 
 if __name__ == "__main__":
     main(sys.argv[1:])

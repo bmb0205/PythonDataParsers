@@ -54,6 +54,7 @@ def sortBlocks(blockList):
     termList = list()
     typedefList = list()
     for block in blockList:
+        print block, '\n'
         blockType = block[0]
         if blockType == "format-version: 1.2":
             metaData.append(block)
