@@ -3,29 +3,25 @@
 import csv
 import os
 import pandas
+import StringIO
 
-class FileParser(object):
-    def __init__(self, source, structure, outputHeaderList):
-        self.source = source
-        self.structure = structure
-        self.filePath = ''
-        self.outputHeaderList = outputHeaderList
+class CsvFileParser(object):
+    def __init__(self, file, outPath, filePath, outHeaders, fileHeader):
+        self.file = file
+        self.outPath = outPath
+        self.filePath = filePath
+        self.outHeaders = outHeaders
+        self.fileHeader = fileHeader
 
-        # sets fileList, sourcePath
-        for key in structure.keys():
-            setattr(self, key, structure[key])
-
-        # sets appropriate headers to the files
-        for file in self.fileList:
-            setattr(self, file, self.fileList[file])
-
-    def parseFile(self):
+    def parseCsv(self):
         """ """
-        csv.register_dialect('tabs', delimiter='\t')
-        with open(self.filePath, 'rU') as inFile:
-            data = pandas.read_csv(inFile, sep='\t', comment='#', names=outputHeaderList)
-            # print data
-
+        # csv.register_dialect('tabs', delimiter='\t')
+        with open(self.filePath, 'r') as inFile:
+            data = pandas.read_csv(inFile, sep='\t', comment='#', names=self.fileHeader)
+            # thing = data.groupby('GeneID')
+            # print thing.values
+            grouped = data.groupby('GeneID')['Synonyms'].apply(set)
+            print grouped[:10]
 
             # csvReader = csv.DictReader(filter(lambda row: row[0] != '#', inFile),
             #                            dialect='tabs', fieldnames=self.fileList[self.file])
