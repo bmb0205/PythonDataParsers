@@ -16,7 +16,7 @@ import pprint
 import json
 import yaml
 import codecs
-from fileParsers import CsvFileParser
+from sourceClasses import ParentClass
 
 
 # def addHeaders(sourcePath, filePath):
@@ -82,29 +82,15 @@ def main(argv):
                 filePath = os.path.join(topDir, source, file)
                 outHeaders = [attr[2:] for attr in attributeList if '++' in attr]
                 fileHeader = [attr.replace('++', '').replace(' ', '_') for attr in attributeList]
-               
 
+                parent = ParentClass(file, source, outPath, filePath, outHeaders, fileHeader)
 
+                # #""" CsvFileParser class parsing NCBI Entrez Gene and CTD """
+                # print '\n', file
+                # if source in ['NCBIEntrezGene', 'CTD', 'Ensemble']:
+                #     csvInstance = CsvFileParser(file, source, outPath, filePath, outHeaders, fileHeader)
+                #     iterable = csvInstance.parseCsvFile()
 
-                """
-                okay so call classes from here, not from csv parser
-
-                """
-
-                #### Parse 
-                #""" CsvFileParser class parsing NCBI Entrez Gene and CTD """
-                print '\n', file
-                if source in ['NCBIEntrezGene', 'CTD', 'Ensemble']:
-                    csvInstance = CsvFileParser(file, source, outPath, filePath, outHeaders, fileHeader)
-                    iterable = csvInstance.parseCsvFile()
-                    print next(iterable)
-                    # print next(iterable)
-                    # print next(iterable)
-                    # print next(iterable)
-                    # print next(iterable)
-                    continue
-                    # for processedRow in csvInstance.parseCsvFile():
-                    #     print processedRow
 
 
 
