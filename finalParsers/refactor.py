@@ -68,27 +68,56 @@ def main(argv):
     locale.setlocale(locale.LC_ALL, "")
     outDir = general.createOutDirectory(topDir)
     jsonPath = os.path.join(topDir, 'jsonFiles', source.lower() + '.json')
+
     try:
         with open(jsonPath, 'r') as jsonInfile:
             jsonDump = json.dumps(json.load(jsonInfile))
             jsonDict = yaml.safe_load(jsonDump)
             # pprint.pprint(jsonDict)
+
+
+            #### Prepare attribute args for upcoming class
+
             for file, attributeList in jsonDict.iteritems():
-                outHeaders = [attr[2:] for attr in attributeList if '++' in attr]
-                fileHeader = [attr.replace('++', '') for attr in attributeList]
                 outPath = os.path.join(outDir, file + ".out")
                 filePath = os.path.join(topDir, source, file)
-                csvInstance = CsvFileParser(file, outPath, filePath, outHeaders, fileHeader)
-                print '\n\n', csvInstance.filePath
-                # pprint.pprint(vars(csvInstance))
-                csvInstance.parseCsv()
-                
+                outHeaders = [attr[2:] for attr in attributeList if '++' in attr]
+                fileHeader = [attr.replace('++', '') for attr in attributeList]
+
+                #### Parse 
+                #""" CsvFileParser class parsing NCBI Entrez Gene and CTD """
+                if source in ['NCBIEntrezGene']:
+                    print 'here'
+                    csvInstance = CsvFileParser(file, source, outPath, filePath, outHeaders, fileHeader)
+                    print 'there'
+                    print csvInstance.file
+                    print csvInstance.parseCsvFile()
+                    print 'erwhere'
+                    for processedRow in csvInstance.parseCsvFile():
+                        print processedRow
+
+
     except IOError:
         print "Could not properly load .json file."
         sys.exit()
 
 
+if __name__ == "__main__":
+    main(sys.argv[1:])
 
+
+                    # if csvInstance.file.startswith("All"):  # no duplicate nodes
+                        
+                        # print csvInstance.outHeaders
+                        # pprint.pprint(vars(csvInstance))
+
+                        # nodeFileDict = defaultdict(lambda: defaultdict(set))
+                        # print 'got here'
+
+
+                        ## yes do this but zippedRow needs to be processed first in parser
+                        ## update defaultdict while iterating...decide when to write
+                        # for processedRow in csvInstance.parseCsv():
 
 
 
@@ -129,10 +158,6 @@ def main(argv):
 
 
 
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
 
 
 
