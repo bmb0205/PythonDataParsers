@@ -19,7 +19,6 @@ import codecs
 from fileParsers import CsvFileParser
 
 
-
 # def addHeaders(sourcePath, filePath):
 #     """ """
 #     headerList = list()
@@ -82,19 +81,31 @@ def main(argv):
                 outPath = os.path.join(outDir, file + ".out")
                 filePath = os.path.join(topDir, source, file)
                 outHeaders = [attr[2:] for attr in attributeList if '++' in attr]
-                fileHeader = [attr.replace('++', '') for attr in attributeList]
+                fileHeader = [attr.replace('++', '').replace(' ', '_') for attr in attributeList]
+               
+
+
+
+                """
+                okay so call classes from here, not from csv parser
+
+                """
 
                 #### Parse 
                 #""" CsvFileParser class parsing NCBI Entrez Gene and CTD """
-                if source in ['NCBIEntrezGene']:
-                    print 'here'
+                print '\n', file
+                if source in ['NCBIEntrezGene', 'CTD', 'Ensemble']:
                     csvInstance = CsvFileParser(file, source, outPath, filePath, outHeaders, fileHeader)
-                    print 'there'
-                    print csvInstance.file
-                    print csvInstance.parseCsvFile()
-                    print 'erwhere'
-                    for processedRow in csvInstance.parseCsvFile():
-                        print processedRow
+                    iterable = csvInstance.parseCsvFile()
+                    print next(iterable)
+                    # print next(iterable)
+                    # print next(iterable)
+                    # print next(iterable)
+                    # print next(iterable)
+                    continue
+                    # for processedRow in csvInstance.parseCsvFile():
+                    #     print processedRow
+
 
 
     except IOError:
