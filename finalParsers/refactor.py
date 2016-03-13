@@ -16,32 +16,8 @@ import pprint
 import json
 import yaml
 import codecs
-from sourceClasses import ParentClass
-
-
-# def addHeaders(sourcePath, filePath):
-#     """ """
-#     headerList = list()
-#     if sourcePath.endswith('CTD') or sourcePath.endswith('NCBIEntrezGene'):
-#         headerList = csvHeader(filePath)
-#     # elif sourcePath.endswith()
-#     return headerList
-
-
-# def csvHeader(filePath):
-#     """ """
-#     with open(filePath, 'rU') as inFile:
-#         for line in inFile:
-#             if line.startswith('#Format:'):
-#                 tempHeader = line.strip().split(' (')[0]
-#                 header = tempHeader.split(' ')[1:]
-#                 return header
-#             elif line.startswith('#MIM number'):
-#                 header = line.lstrip('#').rstrip().split('\t')
-#                 return header
-#             elif line.startswith('# Fields:'):
-#                 header = next(inFile)[2:].strip().split('\t')
-#                 return header
+import importlib
+from sourceClasses import SourceClass
 
 
 def main(argv):
@@ -62,125 +38,51 @@ def main(argv):
                 arg = arg + "/"
             topDir = arg
         elif opt in ['-s', '--source']:
-            source = arg
+            sourceString = arg
     # startTime = time.clock()
     locale.setlocale(locale.LC_ALL, "")
     outDir = general.createOutDirectory(topDir)
-    jsonPath = os.path.join(topDir, 'jsonFiles', source.lower() + '.json')
 
-    try:
-        with open(jsonPath, 'r') as jsonInfile:
-            jsonDump = json.dumps(json.load(jsonInfile))
-            jsonDict = yaml.safe_load(jsonDump)
-            # pprint.pprint(jsonDict)
+    sourceList = sourceString.strip().split(',')
 
+    #  Runs for each source
+    for source in sourceList:
+        print '\n~~~~~~~~~~~~~~~~~~~~~~\n', source
+        jsonPath = os.path.join(topDir, 'jsonFiles', source.lower() + '.json')
 
-            #### Prepare attribute args for upcoming class
+        try:
+            # extract nested JSON data structure, safe_load ensures non unicode strings
+            with open(jsonPath, 'r') as jsonInfile:
+                jsonDump = json.dumps(json.load(jsonInfile))
+                jsonDict = yaml.safe_load(jsonDump)
 
-            for file, attributeList in jsonDict.iteritems():
-                outPath = os.path.join(outDir, file + ".out")
-                filePath = os.path.join(topDir, source, file)
-                outHeaders = [attr[2:] for attr in attributeList if '++' in attr]
-                fileHeader = [attr.replace('++', '').replace(' ', '_') for attr in attributeList]
+                #  Prepare attribute args for each file and upcoming class creation
+                for file, attributeList in jsonDict.iteritems():
+                    filePath = os.path.join(topDir, source, file)
+                    outPath = os.path.join(outDir, file + ".out")
+                    fileHeader = [attr.replace('+', '').replace('$', '').replace(' ', '_') for attr in attributeList]
+                    inputAttributes = [attr[1:] for attr in attributeList if '+' in attr or '$' in attr]
+                    ignoredAttributes = [attr[1:] for attr in attributeList if '$' in attr]
+                    outHeader = [attr for attr in inputAttributes if attr not in ignoredAttributes]
 
-                parent = ParentClass(file, source, outPath, filePath, outHeaders, fileHeader)
+                    #  Differentiate sources here by importing sourceClasses.py module
+                    #  and dynamically calling source classes
+                    # print '\n'
+                    # print file
+                    classModule = importlib.import_module('sourceClasses')
+                    MySourceClass = getattr(classModule, source)
+                    # print outPath, '\n'
+                    # print 'attributeList: ', attributeList, '\n'
+                    # print 'fileHeader: ', fileHeader, '\n'
+                    # print 'input Attributes: ', inputAttributes, '\n'
+                    # print 'ignored: ', ignoredAttributes, '\n'
+                    # print 'outHeader: ', outHeader, '\n'
+                    sourceInstance = MySourceClass(file, source, outPath, filePath, outHeader, inputAttributes, fileHeader, ignoredAttributes)
+                    sourceInstance.checkFile()
 
-                # #""" CsvFileParser class parsing NCBI Entrez Gene and CTD """
-                # print '\n', file
-                # if source in ['NCBIEntrezGene', 'CTD', 'Ensemble']:
-                #     csvInstance = CsvFileParser(file, source, outPath, filePath, outHeaders, fileHeader)
-                #     iterable = csvInstance.parseCsvFile()
-
-
-
-
-    except IOError:
-        print "Could not properly load .json file."
-        sys.exit()
-
+        except IOError:
+            print "Could not properly load .json file."
+            sys.exit()
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-
-
-                    # if csvInstance.file.startswith("All"):  # no duplicate nodes
-                        
-                        # print csvInstance.outHeaders
-                        # pprint.pprint(vars(csvInstance))
-
-                        # nodeFileDict = defaultdict(lambda: defaultdict(set))
-                        # print 'got here'
-
-
-                        ## yes do this but zippedRow needs to be processed first in parser
-                        ## update defaultdict while iterating...decide when to write
-                        # for processedRow in csvInstance.parseCsv():
-
-
-
-    # sourceList = os.listdir(topDir)[::-1]
-
-    # structure = fileStructure(topDir, outDir, sourceList, outputHeaderList)
-
-    
-    # for source, structure in structure.iteritems():
-    #     if source in ['CTD', 'NCBIEntrezGene']:
-    #         print '\n\n', source
-            # pprint.pprint(structure['fileList'])
-            # obj = FileParser(source, structure, outputHeaderList)
-            # for k, v in structure.iteritems():
-            #     pprint.pprint(k)
-            #     pprint.pprint(v)
-            # for file in obj.fileList.keys():
-
-
-        #         obj.filePath = os.path.join(obj.sourcePath, file)
-        #         obj.file = file
-        #         obj.writeRelationships()
-
-            # """
-
-            # working here
-            # idea: make it so user can input source type as argument as well as string of desired attributes?
-            # figure out how to differentiate between source types and make things more generic
-
-            # need to specify which attributes needed from specific files
-            # """
-
-
-
-
-
-
-
-
-
-
-
-
-
-            # for source in sourceList:
-            #   fileStructure(source)
-            #     sourcePath = os.path.join(topDir + source)
-            #     fileList = os.listdir(sourcePath)
-            #     FileParser(outDir, sourcePath, file)
-
-            #     # """ Therapeutic Target Database (TTD) """
-            #     if sourcePath.endswith('TTD'):
-            #         ttd = TTDParser(outDir, sourcePath, fileList)
-            #         ttd.parseTTD()
-
-            #     # """ Medical Subject Headings (MeSH) """
-            #     elif sourcePath.endswith('MeSH'):
-            #         mesh = MeSHParser(outDir, sourcePath, fileList)
-            #         totalMeshNodeSet = mesh.parseMeSH()
-
-            #         # """ Comparative Toxicogenomic Database (CTD) """
-            #         sourcePath = os.path.join(topDir + "CTD/")
-            #         fileList = os.listdir(sourcePath)
-            #         ctd = CTDParser(outDir, sourcePath, fileList, totalMeshNodeSet)
-            #         ctd.parseCTD()
-
-
-# if __name__ == "__main__":
-#     main(sys.argv[1:])

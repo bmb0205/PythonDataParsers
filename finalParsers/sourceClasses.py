@@ -6,63 +6,50 @@ import importlib
 import csv
 
 
-class ParentClass(object):
-    def __init__(self, file, source, outPath, filePath, outHeaders, fileHeader):
+class SourceClass(object):
+    """
+    SourceClass is parent class for each specific source class.
+    Contains attributes passed in from main() function in refactor.py, and
+    Class methods shared between the child classes for header fixing and generic tsv parsing
+    """
+    def __init__(self, file, source, outPath, filePath, outHeader, inputAttributes, fileHeader, ignoredAttributes):
         self.file = file
         self.source = source
         self.outPath = outPath
         self.filePath = filePath
-        self.outHeaders = outHeaders
+        self.outHeader = outHeader
+        self.inputAttributes = inputAttributes
         self.fileHeader = fileHeader
+        self.ignoredAttributes = ignoredAttributes
 
-        if self.source == 'NCBIEntrezGene':
-            self.NCBIEntrezGene = NCBIEntrezGene()
-            print vars(self.NCBIEntrezGene)
-
-
-class NCBIEntrezGene(object):
-    """
-    Class for parsing All_Mammalia.gene_info, All_Plants.gene_info files
-    Holds logic for processing NCBI Entrez Gene nodes in preparation for writing
-    """
-    def __init__(self):
-        self.parent = ParentClass()
-
-        # if self.parent.file.endswith('gene_info'):
-        #     self.parseGeneInfo()
-
-    def parseGeneInfo(self):
-        tsvInstance = TsvFileParser(self.parent.file, self.parent.filePath, self.outHeaders, self.fileHeader)
-
-        for zippedRow in tsvInstance.parseTsvFile():
-            synonymList = ['Symbol', 'Synonyms', 'Symbol_from_nomenclature_authority', 'Other_designations']
-            self.processedRow['Synonym'] = ';'.join(self.zippedRow[x] for x in synonymList if self.zippedRow[x] != '-')
-            self.processedRow['Preferred_Term'] = self.zippedRow['description']
-            self.processedRow['Tax_ID'] = ("NCBI_TAXONOMY:" + self.zippedRow['tax_id'])
-            return self.processedRow
-
-
-class TsvFileParser(object):
-
-    def __init__(self, file, filePath, outHeaders, fileHeader):
-        self.file = file
-        self.filePath = filePath
-        self.outHeaders = outHeaders
-        self.fileHeader = fileHeader
-        self.parent = ParentClass()
+    def fixHeader(self, attribute):
+        """
+        Formats output header in proper way for desired attribute names to be seen in neo4j
+        Adds :Label to header as well to identify node label upon database creation
+        """
+        replaceDict = {'description': 'Preferred_Term'}
+        fixedIndex = self.outHeader.index(attribute)
+        self.outHeader[fixedIndex] = replaceDict[attribute]
+        fixedHeader = self.outHeader
+        fixedHeader.append(':Label')
+        return fixedHeader
 
     def parseTsvFile(self):
+        """
+        Register tab delimited dialect and open .tsv using csv.DictReader()
+        Filter row in .tsv according to user selected attributes in .json
+        Yields filteredRow from generator
+        """
         csv.register_dialect('tabs', delimiter='\t')
         try:
-            with open(self.parent.filePath, 'r') as inFile:
+            with open(self.filePath, 'r') as inFile:
                 try:
                     tsvReader = csv.DictReader(filter(lambda row: row[0] != '#', inFile),
-                                               dialect='tabs', fieldnames=self.parent.fileHeader)
-                    print 'read csv'
+                                               dialect='tabs', fieldnames=self.fileHeader)
                     for row in tsvReader:
-                        filtered = [row[i] for i in self.outHeaders]
-                        zippedRow = OrderedDict(zip(self.parent.outHeaders, filtered))
-                        yield zippedRow
+                        # maybe clean the items here to remove '|' etc
+                        filteredRow = [row[i].replace('|', ';') for i in self.inputAttributes]
+                        yield filteredRow  # filtered for only inputAttributes selected (synonyms and main attr)
                     print 'done with file'
                 except IOError:
                     print "Could not properly read in .csv using csv.DictReader()"
@@ -70,53 +57,57 @@ class TsvFileParser(object):
             print "Could not read infile in preparation for creating csv.DictReader() object"
 
 
+class NCBIEntrezGene(SourceClass):
+    """
+    Class for parsing All_Mammalia.gene_info, All_Plants.gene_info files
+    Holds logic for processing NCBI Entrez Gene nodes in preparation for writing
+    """
+    def checkFile(self):
+        if self.file.endswith('gene_info'):
+            with open(self.outPath, 'w') as outFile:
+                tempHeader = self.fixHeader('description')
+                fixedHeader = '|'.join([(attr + ':String[]') if attr == 'Synonyms' else attr for attr in tempHeader])
+                outFile.write(fixedHeader + '\n')
+                for outString in self.processNodeInfo():
+                    outFile.write(outString + '\n')
+        # elif self.file.endswith('gene2go'):
+        #     continue
+
+    def processNodeInfo(self):
+        """
+        Processes row yielded from parseTsvFile() generator function
+        Gathers synonyms based on user selection in .json
+        Uses list comprehension to create and alter outString for node writing to out file
+        """
+        for filteredRow in self.parseTsvFile():
+            ignoredIndexList = [i for i, n in enumerate(self.inputAttributes) if n in self.ignoredAttributes]
+            syndexList = [index for index, attr in enumerate(self.inputAttributes) if attr.lower() in ['synonym', 'synonyms']]
+            ignoredIndexList.extend(syndexList)
+            tempList = [n for i, n in enumerate(filteredRow) if i not in ignoredIndexList and n != '-']
+            synonyms = ";".join([filteredRow[i] for i in ignoredIndexList if filteredRow[i] != '-'])
+            tempList.insert(self.outHeader.index('Synonyms'), synonyms)
+            tempList.append(self.source)
+            tempList[0] = 'ENTREZ_GENE:' + tempList[0]
+            outString = '|'.join(tempList)
+            yield outString
 
 
+# class CTD(SourceClass):
+#     """
+#     Does a thing
+#     """
+#     # def __init__()
 
+#     def checkFile(self):
+#         if self.file.endswith(''):
+#             self.processNodeInfo()
 
+#     def parseGeneInfo(self):
+#         tsvInstance = TsvFileParser()
 
-
-
-
-
-
-
-
-
-
-
-
-
-    # def processRow(self):
-    #     """ Processes row depending on file """
-
-    #     processedRow = defaultdict(str)
-
-    #     processedRow['Gene_ID'] = ("ENTREZ:" + self.zippedRow['GeneID'])
-
-    #     if self.file.endswith('gene_info'):
-
-    #         synonymList = ['Symbol', 'Synonyms', 'Symbol_from_nomenclature_authority', 'Other_designations']
-    #         processedRow['Synonym'] = ';'.join(self.zippedRow[x] for x in synonymList if self.zippedRow[x] != '-')
-    #         processedRow['Preferred_Term'] = self.zippedRow['description']
-    #         processedRow['Tax_ID'] = ("NCBI_TAXONOMY:" + self.zippedRow['tax_id'])
-    #         return processedRow
-
-    #     elif self.file == 'gene_group':
-    #         if 'sibling' in self.zippedRow['relationship']:
-    #             return None
-    #         processedRow['Tax_ID'] = ("NCBI_TAXONOMY:" + self.zippedRow['tax_id'])
-    #         processedRow['Relationship'] = self.zippedRow['relationship']
-    #         processedRow['Other_Tax_ID'] = ("NCBI_TAXONOMY:" + self.zippedRow['Other_tax_id'])
-    #         processedRow['Other_Gene_ID'] = ("ENTREZ_GENE:" + self.zippedRow['Other_GeneID'])
-    #         return processedRow
-
-    #     elif self.file == 'mim2gene_medgen':
-    #         processedRow['MIM_ID'] = ("MIM:" + self.zippedRow['MIM_number'])
-    #         processedRow['Source'] = self.zippedRow['Source'] if self.zippedRow['Source'] != '-' else 
-    #         return processedRow
-
-    #     elif self.file == 'gene2go':
-    #         processedRow['Relationship'] = self.zippedRow['Category']
-    #         processedRow['GO_ID'] = self.zippedRow['GO_ID'])
-    #         return processedRow
+#         for zippedRow in tsvInstance.parseTsvFile():
+#             synonymList = ['Symbol', 'Synonyms', 'Symbol_from_nomenclature_authority', 'Other_designations']
+#             self.processedRow['Synonym'] = ';'.join(self.zippedRow[x] for x in synonymList if self.zippedRow[x] != '-')
+#             self.processedRow['Preferred_Term'] = self.zippedRow['description']
+#             self.processedRow['Tax_ID'] = ("NCBI_TAXONOMY:" + self.zippedRow['tax_id'])
+#             return self.processedRow
