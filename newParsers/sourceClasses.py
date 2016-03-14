@@ -35,8 +35,10 @@ class SourceClass(object):
         for index, attr in enumerate(self.outHeader):
             if attr == 'GeneID':
                 fixedHeader[index] = attr + ':START_ID'
-            elif attr in ['GO_ID', 'Tax_ID']:
+            elif attr == 'GO_ID':
                 fixedHeader[index] = attr + ':END_ID'
+            elif attr == 'tax_id':
+                fixedHeader[index] = replaceDict[attr] + ':END_ID'
             elif attr in replaceDict:
                 self.outHeader[index] = replaceDict[attr]
                 fixedHeader = self.outHeader
