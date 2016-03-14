@@ -23,19 +23,25 @@ class SourceClass(object):
         self.fileHeader = fileHeader
         self.ignoredAttributes = ignoredAttributes
 
-    def fixHeader(self, *attribute):
+    def fixHeader(self):
         """
         Formats output header in proper way for desired attribute names to be seen in neo4j
         Adds :Label to header as well to identify node label upon database creation
         """
-        if attribute:
-            for attr in attribute:
-                replaceDict = {'description': 'Preferred_Term', 'tax_id': 'TaxID',
-                               'Other_tax_id': 'Other_TaxID', 'relationship': ':Label'}
-                fixedIndex = self.outHeader.index(attribute)
-                self.outHeader[fixedIndex] = replaceDict[attribute]
+        replaceDict = {'description': 'Preferred_Term', 'tax_id': 'TaxID',
+                       'Other_tax_id': 'Other_TaxID', 'relationship': ':Type', 'Category': ':Type'}
+        print self.outHeader
+        fixedHeader = self.outHeader
+        for index, attr in enumerate(self.outHeader):
+            if attr == 'GeneID':
+                fixedHeader[index] = attr + ':START_ID'
+            elif attr in ['GO_ID', 'Tax_ID']:
+                fixedHeader[index] = attr + ':END_ID'
+            elif attr in replaceDict:
+                self.outHeader[index] = replaceDict[attr]
                 fixedHeader = self.outHeader
-        fixedHeader.append(':Label')
+        fixedHeader.append('Source')
+        print fixedHeader
         return fixedHeader
 
     def parseTsvFile(self):
@@ -68,11 +74,12 @@ class NCBIEntrezGene(SourceClass):
     """
     def checkFile(self):
         print "\n~~~~~ Parsing NCBI Entrez Gene database ~~~~~\n"
+
         if self.file.endswith('gene_info'):
             start = time.clock()
             print "Parsing %s\n" % self.filePath
             with open(self.outPath, 'w') as outFile:
-                tempHeader = self.fixHeader('description')
+                tempHeader = self.fixHeader()
                 fixedHeader = '|'.join([(attr + ':String[]') if attr == 'Synonyms' else attr for attr in tempHeader])
                 outFile.write(fixedHeader + '\n')
                 for outString in self.processNodeInfo():
@@ -80,13 +87,15 @@ class NCBIEntrezGene(SourceClass):
             end = time.clock()
             duration = end - start
             print "\nIt took %s seconds to parse %s\n" % (duration, self.filePath)
+
         elif self.file.endswith('gene2go'):
             start = time.clock()
             print "Parsing %s\n" % self.filePath
             with open(self.outPath, 'w') as outFile:
                 relnDict = self.processGeneGORelationshipInfo()
-                outHeader = self.outHeader[:-1]
-                outHeader.append(":Label")
+                # outHeader = self.outHeader[:-1]
+                # outHeader.append(":Label")
+                outHeader = self.fixHeader()
                 outFile.write('|'.join(outHeader) + '\n')
                 for relnTup, idSet in relnDict.iteritems():
                     fullIDList = ';'.join([medID for medID in idSet])
@@ -98,12 +107,14 @@ class NCBIEntrezGene(SourceClass):
             duration = end - start
             print "\nIt took %s seconds to parse %s\n" % (duration, self.filePath)
             print len(relnDict), ' ENTREZ Gene to Gene Ontology relationships have been created.\n'
+
         elif self.file.endswith('gene_group'):
             start = time.clock()
             print "Parsing %s\n" % self.filePath
             relnDict = self.processGeneTaxRelationshipInfo()
             with open(self.outPath, 'w') as outFile:
-                fixedHeader = self.fixHeader('relationship', 'Other_tax_id')
+                fixedHeader = self.fixHeader()
+                # fixedHeader = self.fixHeader('relationship', 'Other_tax_id')
                 outFile.write('|'.join(self.outHeader) + '\n')
                 for relnTup, alternateIDs in relnDict.iteritems():
                     relnList = list(relnTup)
@@ -139,10 +150,11 @@ class NCBIEntrezGene(SourceClass):
         relnDict = defaultdict(lambda: defaultdict(set))
         for filteredRow in self.parseTsvFile():
             zippedRow = OrderedDict(zip(self.outHeader, filteredRow))
-            filteredRow[self.outHeader.index('tax_id')] = 'NCBI_TAXONOMY:' + filteredRow[self.outHeader.index('tax_id')]
-            filteredRow[self.outHeader.index('GeneID')] = 'ENTREZ_GENE:' + filteredRow[self.outHeader.index('GeneID')]
-            filteredRow[self.outHeader.index('Other_tax_id')] = 'NCBI_TAXONOMY:' + filteredRow[self.outHeader.index('Other_tax_id')]
-            filteredRow[self.outHeader.index('Other_GeneID')] = 'ENTREZ_GENE:' + filteredRow[self.outHeader.index('Other_GeneID')]
+
+            # filteredRow[self.outHeader.index('tax_id')] = 'NCBI_TAXONOMY:' + filteredRow[self.outHeader.index('tax_id')]
+            # filteredRow[self.outHeader.index('GeneID')] = 'ENTREZ_GENE:' + filteredRow[self.outHeader.index('GeneID')]
+            # filteredRow[self.outHeader.index('Other_tax_id')] = 'NCBI_TAXONOMY:' + filteredRow[self.outHeader.index('Other_tax_id')]
+            # filteredRow[self.outHeader.index('Other_GeneID')] = 'ENTREZ_GENE:' + filteredRow[self.outHeader.index('Other_GeneID')]
             relnTup = (('NCBI_TAXONOMY:' + zippedRow['tax_id']), zippedRow['relationship'], ('ENTREZ_GENE:' + zippedRow['GeneID']))
             relnDict[relnTup]['Other_GeneID'].add(zippedRow['Other_GeneID'])
             relnDict[relnTup]['Other_tax_ID'].add(zippedRow['Other_tax_id'])
