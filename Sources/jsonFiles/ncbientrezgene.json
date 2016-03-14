@@ -31,12 +31,12 @@
 	                         "$Other_designations",
 	                         "Modification_date"],
 
-	"gene2go": ["+tax_id",
+	"gene2go": ["tax_id",
 				"+GeneID",
 				"+GO_ID",
 				"Evidence",
 				"Qualifier",
-				"+GO_term",
+				"GO_term",
 				"+PubMed",
 				"+Category"],
 

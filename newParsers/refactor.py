@@ -1,23 +1,14 @@
 #!/usr/bin/python
 
 import sys
-import time
 import getopt
 import locale
 import os
 import general
-import csv
-from collections import defaultdict
-# from ttdParser import TTDParser
-# from meshParser import MeSHParser
-# from ctdParser import CTDParser
-import pprint
-# from fileParser import FileParser
 import json
 import yaml
-import codecs
 import importlib
-from sourceClasses import SourceClass
+import sourceClasses
 
 
 def main(argv):
