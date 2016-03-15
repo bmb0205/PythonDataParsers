@@ -36,6 +36,7 @@ def main(argv):
 
     sourceList = sourceString.strip().split(',')
 
+
     #  Runs for each source
     for source in sourceList:
         print '\n~~~~~~~~~~~~~~~~~~~~~~\n', source
@@ -56,18 +57,21 @@ def main(argv):
                     ignoredAttributes = [attr[1:] for attr in attributeList if '$' in attr]
                     outHeader = [attr for attr in inputAttributes if attr not in ignoredAttributes]
 
+                    # print file
+                    # print outHeader, '\n'
+
                     #  Differentiate sources here by importing sourceClasses.py module
                     #  and dynamically calling source classes
                     # print '\n'
                     # print file
                     classModule = importlib.import_module('sourceClasses')
                     MySourceClass = getattr(classModule, source)
-                    # print outPath, '\n'
-                    # print 'attributeList: ', attributeList, '\n'
-                    # print 'fileHeader: ', fileHeader, '\n'
-                    # print 'input Attributes: ', inputAttributes, '\n'
-                    # print 'ignored: ', ignoredAttributes, '\n'
-                    # print 'outHeader: ', outHeader, '\n'
+                    # # print outPath, '\n'
+                    # # print 'attributeList: ', attributeList, '\n'
+                    # # print 'fileHeader: ', fileHeader, '\n'
+                    # # print 'input Attributes: ', inputAttributes, '\n'
+                    # # print 'ignored: ', ignoredAttributes, '\n'
+                    # # print 'outHeader: ', outHeader, '\n'
                     sourceInstance = MySourceClass(file, source, outPath, filePath, outHeader, inputAttributes, fileHeader, ignoredAttributes)
                     sourceInstance.checkFile()
 

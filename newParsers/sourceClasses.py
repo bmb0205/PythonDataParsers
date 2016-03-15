@@ -3,6 +3,7 @@
 from collections import defaultdict
 from collections import OrderedDict
 import importlib
+import locale
 import csv
 import time
 
@@ -23,27 +24,36 @@ class SourceClass(object):
         self.fileHeader = fileHeader
         self.ignoredAttributes = ignoredAttributes
 
+    def addSourceNames(self, zippedRow):
+        """ Adds capitalized source identifier string to unique source ID """
+        for header, attr in zippedRow.iteritems():
+            if header in ['GeneID', 'Other_GeneID']:
+                zippedRow[header] = 'ENTREZ_GENE:' + attr
+            elif header in ['tax_id', 'Other_tax_id']:
+                zippedRow[header] = 'NCBI_TAXONOMY:' + attr
+        return zippedRow
+
+    def getFullSourceName(self):
+        """ Returns full name of source instead of condensed directory name """
+        fullNameDict = {'NCBIEntrezGene': 'NCBI_Entrez_Gene',
+                        'CTD': 'Comparative_Toxicogenomics_Database'}
+        return fullNameDict[self.source]
+
     def fixHeader(self):
         """
         Formats output header in proper way for desired attribute names to be seen in neo4j
         Adds :Label to header as well to identify node label upon database creation
         """
-        replaceDict = {'description': 'Preferred_Term', 'tax_id': 'TaxID',
-                       'Other_tax_id': 'Other_TaxID', 'relationship': ':Type', 'Category': ':Type'}
-        print self.outHeader
         fixedHeader = self.outHeader
+
+        fixHeaderDict = {'description': 'Preferred_Term', 'tax_id': 'TaxID:END_ID', 'MIM number': 'MIM_Number',
+                         'Other_tax_id': 'Other_TaxID:String[]', 'Other_GeneID': 'Other_GeneID:String[]',
+                         'GO_ID': 'GO_ID:END_ID', 'PubMed': 'PubMedIDs:String[]', 'GeneID': 'GeneID:START_ID',
+                         'relationship': ':Type', 'Category': ':Type', 'Synonyms': 'Synonyms:String[]'}
         for index, attr in enumerate(self.outHeader):
-            if attr == 'GeneID':
-                fixedHeader[index] = attr + ':START_ID'
-            elif attr == 'GO_ID':
-                fixedHeader[index] = attr + ':END_ID'
-            elif attr == 'tax_id':
-                fixedHeader[index] = replaceDict[attr] + ':END_ID'
-            elif attr in replaceDict:
-                self.outHeader[index] = replaceDict[attr]
-                fixedHeader = self.outHeader
+            if attr in fixHeaderDict:
+                fixedHeader[index] = fixHeaderDict[attr]
         fixedHeader.append('Source')
-        print fixedHeader
         return fixedHeader
 
     def parseTsvFile(self):
@@ -59,10 +69,8 @@ class SourceClass(object):
                     tsvReader = csv.DictReader(filter(lambda row: row[0] != '#', inFile),
                                                dialect='tabs', fieldnames=self.fileHeader)
                     for row in tsvReader:
-                        # maybe clean the items here to remove '|' etc
                         filteredRow = [row[i].replace('|', ';') for i in self.inputAttributes]
                         yield filteredRow  # filtered for only inputAttributes selected (synonyms and main attr)
-                    print 'done with file'
                 except IOError:
                     print "Could not properly read in .csv using csv.DictReader()"
         except IOError:
@@ -74,101 +82,104 @@ class NCBIEntrezGene(SourceClass):
     Class for parsing All_Mammalia.gene_info, All_Plants.gene_info files
     Holds logic for processing NCBI Entrez Gene nodes in preparation for writing
     """
+    print "\n~~~~~ Parsing NCBI Entrez Gene database ~~~~~\n"
+
     def checkFile(self):
-        print "\n~~~~~ Parsing NCBI Entrez Gene database ~~~~~\n"
 
         if self.file.endswith('gene_info'):
             start = time.clock()
+            nodeCount = 0
             print "Parsing %s\n" % self.filePath
             with open(self.outPath, 'w') as outFile:
-                tempHeader = self.fixHeader()
-                fixedHeader = '|'.join([(attr + ':String[]') if attr == 'Synonyms' else attr for attr in tempHeader])
-                outFile.write(fixedHeader + '\n')
+                fixedHeader = self.fixHeader()
+                outFile.write('|'.join(fixedHeader) + '\n')
                 for outString in self.processNodeInfo():
+                    nodeCount += 1
                     outFile.write(outString + '\n')
             end = time.clock()
             duration = end - start
-            print "\nIt took %s seconds to parse %s\n" % (duration, self.filePath)
+            print "\n\tIt took %s seconds to parse %s\n" % (duration, self.filePath)
+            print '\t%s ENTREZ Gene nodes have been created.\n'  % locale.format('%d', nodeCount, True)
 
-        elif self.file.endswith('gene2go'):
+        if self.file.endswith('gene2go'):
             start = time.clock()
+            relnCount = 0
             print "Parsing %s\n" % self.filePath
             with open(self.outPath, 'w') as outFile:
-                relnDict = self.processGeneGORelationshipInfo()
-                # outHeader = self.outHeader[:-1]
-                # outHeader.append(":Label")
-                outHeader = self.fixHeader()
-                outFile.write('|'.join(outHeader) + '\n')
+                relnDict = self.processRelationshipInfo()
+                fixedHeader = self.fixHeader()
+                outFile.write('|'.join(fixedHeader) + '\n')
                 for relnTup, idSet in relnDict.iteritems():
+                    relnCount += 1
                     fullIDList = ';'.join([medID for medID in idSet])
                     relnList = list(relnTup)
                     relnList.insert(-1, fullIDList)
+                    relnList.append(self.getFullSourceName())
                     outString = '|'.join(relnList)
                     outFile.write(outString + '\n')
             end = time.clock()
             duration = end - start
-            print "\nIt took %s seconds to parse %s\n" % (duration, self.filePath)
-            print len(relnDict), ' ENTREZ Gene to Gene Ontology relationships have been created.\n'
+            print "\n\tIt took %s seconds to parse %s\n" % (duration, self.filePath)
+            print '\t%s ENTREZ Gene to Gene Ontology relationships have been created.\n' % locale.format('%d', relnCount, True)
 
         elif self.file.endswith('gene_group'):
             start = time.clock()
+            relnCount = 0
+            relnDict = self.processRelationshipInfo()
             print "Parsing %s\n" % self.filePath
-            relnDict = self.processGeneTaxRelationshipInfo()
             with open(self.outPath, 'w') as outFile:
                 fixedHeader = self.fixHeader()
-                # fixedHeader = self.fixHeader('relationship', 'Other_tax_id')
-                outFile.write('|'.join(self.outHeader) + '\n')
+                outFile.write('|'.join(fixedHeader) + '\n')
                 for relnTup, alternateIDs in relnDict.iteritems():
+                    relnCount += 1
                     relnList = list(relnTup)
                     altGeneIDs = ';'.join(alternateIDs['Other_GeneID'])
                     altTaxIDs = ';'.join(alternateIDs['Other_tax_id'])
-                    outFile.write('|'.join(relnList) + "|" + altGeneIDs + '|' + altTaxIDs + '\n')
+                    outFile.write('|'.join(relnList) + "|" + altGeneIDs + '|' + altTaxIDs + '|' + self.getFullSourceName() + '\n')
             end = time.clock()
             duration = end - start
-            print "\nIt took %s seconds to parse %s\n" % (duration, self.filePath)
-            print len(relnDict), ' ENTREZ Gene to NCBI Taxonomy relationships have been created.\n'
-        # elif self.file.endswith('mim2gene_medgen')
-
-#  geneTaxRelnOutFile.write(":START_ID|alternate_tax_ids:string[]|source|alternate_gene_ids:string[]|:END_ID|:TYPE\n")
-
-
+            print "\n\tIt took %s seconds to parse %s\n" % (duration, self.filePath)
+            print '\t%s ENTREZ Gene to NCBI Taxonomy relationships have been created.\n' % locale.format('%d', relnCount, True)
+        elif self.file.endswith('mim2gene_medgen'):
+            print 'weeeeee'
 
     def getPredicate(self, predicate):
         """ Hard codes text as string according to the disorder's phene mapping key. """
-        predicateOptions = {'Component': "is_a",
-                            'Function': "performs",
-                            'Process': "part_of"}
+        predicateOptions = {'Component': 'is_a',
+                            'Function': 'performs',
+                            'Process': 'part_of'}
         if predicate in predicateOptions:
             return predicateOptions[predicate]
         else:
             return ""
 
-    def processGeneTaxRelationshipInfo(self):
+    def processRelationshipInfo(self):
         """
         Processes filteredRow which is yielded from self.parseTsvFIle().
-        Returns defaultdict with (tax_id, relationship, geneID) as 
+        Returns defaultdict with (tax_id, relationship, geneID) as
         composite key for aggregated pubmed IDs
         """
-        relnDict = defaultdict(lambda: defaultdict(set))
-        for filteredRow in self.parseTsvFile():
-            zippedRow = OrderedDict(zip(self.outHeader, filteredRow))
+        if self.file == 'gene2go':
+            relnDict = defaultdict(set)
+            for filteredRow in self.parseTsvFile():
+                zippedRow = OrderedDict(zip(self.outHeader, filteredRow))
+                zippedRow = self.addSourceNames(zippedRow)
+                relnTuple = (zippedRow['GeneID'], zippedRow['GO_ID'], self.getPredicate(zippedRow['Category']))
+                relnDict[relnTuple].update([medID for medID in zippedRow['PubMed'].split(';') if medID != '-'])
+            return relnDict
 
-            # filteredRow[self.outHeader.index('tax_id')] = 'NCBI_TAXONOMY:' + filteredRow[self.outHeader.index('tax_id')]
-            # filteredRow[self.outHeader.index('GeneID')] = 'ENTREZ_GENE:' + filteredRow[self.outHeader.index('GeneID')]
-            # filteredRow[self.outHeader.index('Other_tax_id')] = 'NCBI_TAXONOMY:' + filteredRow[self.outHeader.index('Other_tax_id')]
-            # filteredRow[self.outHeader.index('Other_GeneID')] = 'ENTREZ_GENE:' + filteredRow[self.outHeader.index('Other_GeneID')]
-            relnTup = (('NCBI_TAXONOMY:' + zippedRow['tax_id']), zippedRow['relationship'], ('ENTREZ_GENE:' + zippedRow['GeneID']))
-            relnDict[relnTup]['Other_GeneID'].add(zippedRow['Other_GeneID'])
-            relnDict[relnTup]['Other_tax_ID'].add(zippedRow['Other_tax_id'])
-        return relnDict
+        elif self.file == 'gene_group':
+            relnDict = defaultdict(lambda: defaultdict(set))
+            for filteredRow in self.parseTsvFile():
+                zippedRow = OrderedDict(zip(self.outHeader, filteredRow))
+                zippedRow = self.addSourceNames(zippedRow)
+                relnTup = (zippedRow['tax_id'], zippedRow['relationship'], zippedRow['GeneID'])
+                relnDict[relnTup]['Other_GeneID'].add(zippedRow['Other_GeneID'])
+                relnDict[relnTup]['Other_tax_ID'].add(zippedRow['Other_tax_id'])
+            return relnDict
 
-    def processGeneGORelationshipInfo(self):
-        relnDict = defaultdict(set)
-        for filteredRow in self.parseTsvFile():
-            zippedRow = OrderedDict(zip(self.outHeader, filteredRow))
-            relnTuple = (('ENTREZ_GENE:' + zippedRow['GeneID']), zippedRow['GO_ID'], self.getPredicate(zippedRow['Category']))
-            relnDict[relnTuple].update([medID for medID in zippedRow['PubMed'].split(';') if medID != '-'])
-        return relnDict
+        elif self.file == 'mim2gene_medgen':
+            print 'mim 2 geeeeeeneee!!!'
 
     def processNodeInfo(self):
         """
@@ -182,8 +193,8 @@ class NCBIEntrezGene(SourceClass):
             ignoredIndexList.extend(syndexList)
             tempList = [n for i, n in enumerate(filteredRow) if i not in ignoredIndexList and n != '-']
             synonyms = ";".join([filteredRow[i] for i in ignoredIndexList if filteredRow[i] != '-'])
-            tempList.insert(self.outHeader.index('Synonyms'), synonyms)
-            tempList.append(self.source)
+            tempList.insert(self.outHeader.index('Synonyms:String[]'), synonyms)
+            tempList.append(self.getFullSourceName())
             tempList[0] = 'ENTREZ_GENE:' + tempList[0]
             outString = '|'.join(tempList)
             yield outString
