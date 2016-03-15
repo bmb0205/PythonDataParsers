@@ -9,7 +9,8 @@ import json
 import yaml
 import importlib
 import sourceClasses
-
+import yamlordereddictloader
+from collections import OrderedDict
 
 def main(argv):
     """ If run as main script, function executes with user input """
@@ -45,14 +46,17 @@ def main(argv):
         try:
             # extract nested JSON data structure, safe_load ensures non unicode strings
             with open(jsonPath, 'r') as jsonInfile:
-                jsonDump = json.dumps(json.load(jsonInfile))
-                jsonDict = yaml.safe_load(jsonDump)
+                jsonDump = json.dumps(json.load(jsonInfile, object_pairs_hook=OrderedDict))
+                print jsonDump
+                # jsonDict = yaml.safe_load(jsonDump, Loader=yamlordereddictloader.Loader)
+                # print jsonDict
+                jsonOrderedDict = general.ordered_load(jsonDump, yaml.SafeLoader)
 
                 #  Prepare attribute args for each file and upcoming class creation
-                for file, attributeList in jsonDict.iteritems():
+                for file, attributeList in jsonOrderedDict.iteritems():
                     filePath = os.path.join(topDir, source, file)
                     outPath = os.path.join(outDir, file + ".out")
-                    fileHeader = [attr.replace('+', '').replace('$', '').replace(' ', '_') for attr in attributeList]
+                    fileHeader = [attr.replace('+', '').replace('$', '') for attr in attributeList]
                     inputAttributes = [attr[1:] for attr in attributeList if '+' in attr or '$' in attr]
                     ignoredAttributes = [attr[1:] for attr in attributeList if '$' in attr]
                     outHeader = [attr for attr in inputAttributes if attr not in ignoredAttributes]
@@ -62,16 +66,16 @@ def main(argv):
 
                     #  Differentiate sources here by importing sourceClasses.py module
                     #  and dynamically calling source classes
-                    # print '\n'
-                    # print file
+                    print '\n'
+                    print file
                     classModule = importlib.import_module('sourceClasses')
                     MySourceClass = getattr(classModule, source)
-                    # # print outPath, '\n'
-                    # # print 'attributeList: ', attributeList, '\n'
-                    # # print 'fileHeader: ', fileHeader, '\n'
-                    # # print 'input Attributes: ', inputAttributes, '\n'
-                    # # print 'ignored: ', ignoredAttributes, '\n'
-                    # # print 'outHeader: ', outHeader, '\n'
+                    print outPath, '\n'
+                    print 'attributeList: ', attributeList, '\n'
+                    print 'fileHeader: ', fileHeader, '\n'
+                    print 'input Attributes: ', inputAttributes, '\n'
+                    print 'ignored: ', ignoredAttributes, '\n'
+                    print 'outHeader: ', outHeader, '\n'
                     sourceInstance = MySourceClass(file, source, outPath, filePath, outHeader, inputAttributes, fileHeader, ignoredAttributes)
                     sourceInstance.checkFile()
 

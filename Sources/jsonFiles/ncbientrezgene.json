@@ -49,7 +49,7 @@
 	"mim2gene_medgen": ["+MIM number",
 						"+GeneID",
 						"type",
-						"+Source",
+						"Source",
 						"MedGenCUI",
 						"Comment"]
 	

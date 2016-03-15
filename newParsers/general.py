@@ -2,10 +2,29 @@
 
 import sys
 import os
+from collections import OrderedDict
+import yaml
+
 
 """
 General
 """
+
+
+# From Stack Overflow
+# Answer: http://stackoverflow.com/a/21912744/4722282
+# User: coldfix, http://stackoverflow.com/users/650222/coldfix
+def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+    class OrderedLoader(Loader):
+        pass
+
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+        return object_pairs_hook(loader.construct_pairs(node))
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        construct_mapping)
+    return yaml.load(stream, OrderedLoader)
 
 
 def createOutDirectory(topDir):
