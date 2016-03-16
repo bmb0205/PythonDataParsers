@@ -20,10 +20,10 @@
 															"InferenceGeneQty",
 															"InferenceGeneSymbols"],
 
-	 "CTD_chem_gene_ixn_types.tsv": ["TypeName",
-									 "Code",
-									 "Description",
-									 "ParentCode"],
+	 "CTD_chem_gene_ixn_types.tsv": ["+TypeName",
+									 "+Code",
+									 "+Description",
+									 "+ParentCode"],
 
 	 "CTD_chem_gene_ixns.tsv": ["ChemicalName",
 								"ChemicalID",
