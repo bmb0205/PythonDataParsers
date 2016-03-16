@@ -47,9 +47,6 @@ def main(argv):
             # extract nested JSON data structure, safe_load ensures non unicode strings
             with open(jsonPath, 'r') as jsonInfile:
                 jsonDump = json.dumps(json.load(jsonInfile, object_pairs_hook=OrderedDict))
-                print jsonDump
-                # jsonDict = yaml.safe_load(jsonDump, Loader=yamlordereddictloader.Loader)
-                # print jsonDict
                 jsonOrderedDict = general.ordered_load(jsonDump, yaml.SafeLoader)
 
                 #  Prepare attribute args for each file and upcoming class creation
@@ -68,7 +65,7 @@ def main(argv):
                     #  and dynamically calling source classes
                     print '\n'
                     print file
-                    classModule = importlib.import_module('sourceClasses')
+                    classModule = importlib.import_module(source.lower())
                     MySourceClass = getattr(classModule, source)
                     print outPath, '\n'
                     print 'attributeList: ', attributeList, '\n'
