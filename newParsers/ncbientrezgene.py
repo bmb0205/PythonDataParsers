@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections import OrderedDict
 import locale
 import time
-from sourceClasses import SourceClass
+from sourceclass import SourceClass
 
 
 class NCBIEntrezGene():
