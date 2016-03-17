@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import csv
+from collections import defaultdict
 
 
 class SourceClass(object):
@@ -23,12 +24,13 @@ class SourceClass(object):
     def addSourceNames(self, zippedRow):
         """ Adds capitalized source identifier string to unique source ID """
         for header, attr in zippedRow.iteritems():
-            if header in ['GeneID', 'Other_GeneID']:
-                zippedRow[header] = 'ENTREZ_GENE:' + attr
-            elif header in ['tax_id', 'Other_tax_id']:
-                zippedRow[header] = 'NCBI_TAXONOMY:' + attr
-            elif header == 'MIM number':
-                zippedRow[header] = 'MIM:' + attr
+            if attr:
+                if header in ['GeneID', 'Other_GeneID']:
+                    zippedRow[header] = 'ENTREZ_GENE:' + attr
+                elif header in ['tax_id', 'Other_tax_id', 'OrganismID']:
+                    zippedRow[header] = 'NCBI_TAXONOMY:' + attr
+                elif header == 'MIM number':
+                    zippedRow[header] = 'MIM:' + attr
         return zippedRow
 
     def getFullSourceName(self):
@@ -47,7 +49,8 @@ class SourceClass(object):
             fixHeaderDict = {'description': 'Preferred_Term', 'tax_id': 'TaxID:END_ID', 'MIM number': 'MIM_Number:END_ID',
                              'Other_tax_id': 'Other_TaxID:String[]', 'Other_GeneID': 'Other_GeneID:String[]',
                              'GO_ID': 'GO_ID:END_ID', 'PubMed': 'PubMedIDs:String[]', 'relationship': ':Type',
-                             'Category': ':Type', 'Synonyms': 'Synonyms:String[]'}
+                             'Category': ':Type', 'Synonyms': 'Synonyms:String[]', 'ChemicalID': 'ChemicalID:END_ID',
+                             'InteractionActions': ':Type'}
             for index, attr in enumerate(self.outHeader):
                 if attr in fixHeaderDict:
                     fixedHeader[index] = fixHeaderDict[attr]
