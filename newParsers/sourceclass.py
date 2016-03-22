@@ -41,34 +41,59 @@ class SourceClass(object):
 
     def writeHeader(self):
         """
-        Formats output header in proper way for desired attribute names to be seen in neo4j
+        Formats output header in proper way for desired attribute names to be seen in neo4j.
+        Keeps header attributes consistent throughout sources ('GO_ID' only instead of 'GO_ID' and 'GOTermID')
         Adds :Label to header as well to identify node label upon database creation
         """
         with open(self.outPath, 'w') as outFile:
             fixedHeader = [None] * len(self.outHeader)
-            fixHeaderDict = {'description': 'Preferred_Term', 'tax_id': 'TaxID:END_ID', 'MIM number': 'MIM_Number:END_ID',
-                             'Other_tax_id': 'Other_TaxID:String[]', 'Other_GeneID': 'Other_GeneID:String[]',
-                             'GO_ID': 'GO_ID:END_ID', 'PubMed': 'PubMedIDs:String[]', 'relationship': ':Type',
-                             'Category': ':Type', 'Synonyms': 'Synonyms:String[]', 'ChemicalID': 'ChemicalID:END_ID',
-                             'InteractionActions': ':Type', 'DiseaseID': 'DiseaseID:START_ID', 'DirectEvidence': 'DirectEvidence:String[]',
-                             'InferenceGeneSymbol': 'InferenceGeneSymbol:String[]', 'OmimIDs': 'OmimIDs:String[]',
-                             'PathwayID': 'PathwayID:START_ID'}
+            fixedHeaderDict = {'CTD': {'GOTermID': 'GO_ID:END_ID', 'ChemicalID': 'ChemicalID:START_ID', 'GeneID': 'GeneID:START_ID',
+                                       'PathwayID': 'PathwayID:END_ID', 'InferenceGeneSymbol': 'InferenceGeneSymbol:String[]',
+                                       'DiseaseID': 'DiseaseID:END_ID', 'DirectEvidence': 'DirectEvidence:String[]',
+                                       'OmimIDs': 'OmimIDs:String[]', 'GeneID': 'GeneID:END_ID'}}
+
             for index, attr in enumerate(self.outHeader):
-                if attr in fixHeaderDict:
-                    fixedHeader[index] = fixHeaderDict[attr]
-                elif attr == 'GeneID':
-                    if self.file.endswith('gene_info'):
-                        fixedHeader[index] = attr + ':ID'
-                    else:
+                if self.file in ['CTD_genes_pathways.tsv', 'CTD_diseases_pathways.tsv']:
+                    if attr in ['GeneID', 'DiseaseID']:
                         fixedHeader[index] = attr + ':START_ID'
+                    elif attr == 'PathwayID':
+                        fixedHeader[index] = attr + ':END_ID'
+                    else:
+                        fixedHeader[index] = attr
                 else:
-                    fixedHeader[index] = attr
-            if self.file == 'CTD_chem_gene_ixns.tsv':
-                fixedHeader.extend(['Code', 'Description', 'ParentCode'])
-            fixedHeader.append('Source')
-            if self.file in ['mim2gene_medgen', 'CTD_genes_pathways.tsv', 'CTD_diseases_pathways.tsv', 'CTD_chem_pathways_enriched.tsv']:
-                fixedHeader.append(':Type')
-            outFile.write(('|'.join(fixedHeader) + '\n'))
+                    if attr in fixedHeaderDict[self.source] and self.file not in ['CTD_genes_pathways.tsv', 'CTD_diseases_pathways.tsv']:
+                        fixedHeader[index] = fixedHeaderDict[self.source][attr]
+                    else:
+                        fixedHeader[index] = attr
+            print fixedHeader
+
+
+
+        # with open(self.outPath, 'w') as outFile:
+        #     fixedHeader = [None] * len(self.outHeader)
+        #     fixHeaderDict = {'description': 'Preferred_Term', 'tax_id': 'TaxID:END_ID', 'MIM number': 'MIM_Number:END_ID',
+        #                      'Other_tax_id': 'Other_TaxID:String[]', 'Other_GeneID': 'Other_GeneID:String[]',
+        #                      'GO_ID': 'GO_ID:END_ID', 'PubMed': 'PubMedIDs:String[]', 'relationship': ':Type',
+        #                      'Category': ':Type', 'Synonyms': 'Synonyms:String[]', 'ChemicalID': 'ChemicalID:END_ID',
+        #                      'InteractionActions': ':Type', 'DiseaseID': 'DiseaseID:START_ID', 'DirectEvidence': 'DirectEvidence:String[]',
+        #                      'InferenceGeneSymbol': 'InferenceGeneSymbol:String[]', 'OmimIDs': 'OmimIDs:String[]',
+        #                      'PathwayID': 'PathwayID:START_ID', 'GOTermID': 'GO_ID:END_ID'}
+        #     for index, attr in enumerate(self.outHeader):
+        #         if attr in fixHeaderDict:
+        #             fixedHeader[index] = fixHeaderDict[attr]
+        #         elif attr == 'GeneID':
+        #             if self.file.endswith('gene_info'):
+        #                 fixedHeader[index] = attr + ':ID'
+        #             else:
+        #                 fixedHeader[index] = attr + ':START_ID'
+        #         else:
+        #             fixedHeader[index] = attr
+        #     if self.file == 'CTD_chem_gene_ixns.tsv':
+        #         fixedHeader.extend(['Code', 'Description', 'ParentCode'])
+        #     fixedHeader.append('Source')
+        #     if self.file in ['mim2gene_medgen', 'CTD_genes_pathways.tsv', 'CTD_diseases_pathways.tsv', 'CTD_chem_pathways_enriched.tsv']:
+        #         fixedHeader.append(':Type')
+        #     outFile.write(('|'.join(fixedHeader) + '\n'))
 
     def parseTsvFile(self):
         """

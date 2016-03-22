@@ -8,8 +8,6 @@ import general
 import json
 import yaml
 import importlib
-import sourceClasses
-import yamlordereddictloader
 from collections import OrderedDict
 
 def main(argv):
@@ -67,11 +65,11 @@ def main(argv):
                     print file
                     classModule = importlib.import_module(source.lower())
                     MySourceClass = getattr(classModule, source)
-                    print outPath, '\n'
-                    print 'attributeList: ', attributeList, '\n'
-                    print 'fileHeader: ', fileHeader, '\n'
-                    print 'input Attributes: ', inputAttributes, '\n'
-                    print 'ignored: ', ignoredAttributes, '\n'
+                    # print outPath, '\n'
+                    # print 'attributeList: ', attributeList, '\n'
+                    # print 'fileHeader: ', fileHeader, '\n'
+                    # print 'input Attributes: ', inputAttributes, '\n'
+                    # print 'ignored: ', ignoredAttributes, '\n'
                     print 'outHeader: ', outHeader, '\n'
                     sourceInstance = MySourceClass(file, source, outPath, filePath, outHeader, inputAttributes, fileHeader, ignoredAttributes)
                     sourceInstance.checkFile()
