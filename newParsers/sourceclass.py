@@ -50,9 +50,9 @@ class SourceClass(object):
                              'Other_tax_id': 'Other_TaxID:String[]', 'Other_GeneID': 'Other_GeneID:String[]',
                              'GO_ID': 'GO_ID:END_ID', 'PubMed': 'PubMedIDs:String[]', 'relationship': ':Type',
                              'Category': ':Type', 'Synonyms': 'Synonyms:String[]', 'ChemicalID': 'ChemicalID:END_ID',
-                             'InteractionActions': ':Type', 'DiseaseID': 'DiseaeID:START_ID', 'DirectEvidence': 'DirectEvidence:String[]',
+                             'InteractionActions': ':Type', 'DiseaseID': 'DiseaseID:START_ID', 'DirectEvidence': 'DirectEvidence:String[]',
                              'InferenceGeneSymbol': 'InferenceGeneSymbol:String[]', 'OmimIDs': 'OmimIDs:String[]',
-                             'PathwayID': 'PathwayID:END_ID'}
+                             'PathwayID': 'PathwayID:START_ID'}
             for index, attr in enumerate(self.outHeader):
                 if attr in fixHeaderDict:
                     fixedHeader[index] = fixHeaderDict[attr]
@@ -66,7 +66,7 @@ class SourceClass(object):
             if self.file == 'CTD_chem_gene_ixns.tsv':
                 fixedHeader.extend(['Code', 'Description', 'ParentCode'])
             fixedHeader.append('Source')
-            if self.file in ['mim2gene_medgen', 'CTD_genes_pathways.tsv', 'CTD_diseases_pathways.tsv']:
+            if self.file in ['mim2gene_medgen', 'CTD_genes_pathways.tsv', 'CTD_diseases_pathways.tsv', 'CTD_chem_pathways_enriched.tsv']:
                 fixedHeader.append(':Type')
             outFile.write(('|'.join(fixedHeader) + '\n'))
 

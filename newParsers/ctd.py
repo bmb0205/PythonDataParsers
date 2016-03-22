@@ -41,15 +41,32 @@ class CTD(SourceClass):
         #     self.parent.writeHeader()
         #     self.writeDiseasePathwayRelationships()
 
-        if self.parent.file == 'CTD_chem_pathways_enriched.tsv':
-            self.parent.writeHeader()
-            self.writeChemPat
+        # if self.parent.file == 'CTD_chem_pathways_enriched.tsv':
+        #     self.parent.writeHeader()
+        #     self.writeChemPathwayRelationships()
 
-    # def writeChemGeneRelationships(self, typeDict):
-    #     with open(self.parent
+        if self.parent.file == 'CTD_chem_go_enriched.tsv':
+            self.parent.writeHeader()
+            self.writeChemGoRelationships()
+
+    def writeChemGoRelationships(self):
+        """ CTD_chem_go_enriched.tsv """
+        with open(self.parent.outPath, 'a') as outFile:
+            for filteredRow in self.parent.parseTsvFile():
+                zippedRow = OrderedDict(zip(self.parent.outHeader, filteredRow))
+                print 'lol', zippedRow
+
+    def writeChemPathwayRelationships(self):
+        """ CTD_chem_pathways_enriched.tsv """
+        with open(self.parent.outPath, 'a') as outFile:
+            for filteredRow in self.parent.parseTsvFile():
+                zippedRow = OrderedDict(zip(self.parent.outHeader, filteredRow))
+                outString = '|'.join((zippedRow['ChemicalID'], zippedRow['PathwayID'], zippedRow['PValue'],
+                                      self.parent.getFullSourceName(), 'involved_in'))
+                outFile.write(outString + '\n')
 
     def getChemGeneTypes(self):
-        """ """
+        """ CTD_chem_gene_ixn_types.tsv """
         for filteredRow in self.parent.parseTsvFile():
             zippedRow = OrderedDict(zip(self.parent.outHeader, filteredRow))
             typeDict[zippedRow['TypeName']]
@@ -58,7 +75,7 @@ class CTD(SourceClass):
                     typeDict[zippedRow['TypeName']][header] = attr
 
     def writeChemGeneRelationships(self):
-        """ """
+        """ CTD_chem_gene_ixns.tsv """
         with open(self.parent.outPath, 'a') as outFile:
             start = time.clock()
             for filteredRow in self.parent.parseTsvFile():
@@ -75,7 +92,7 @@ class CTD(SourceClass):
             print 'time: ', end - start
 
     def writeChemDiseaseRelationships(self):
-        """ """
+        """ CTD_chemicals_diseases.tsv """
         with open(self.parent.outPath, 'a') as outFile:
             relnDict = self.processRelationshipInfo()
             for relnTup, nodeInfo in relnDict.iteritems():
@@ -86,7 +103,7 @@ class CTD(SourceClass):
                 outFile.write(outString + '\n')
 
     def writeGenePathwayRelationships(self):
-        """ """
+        """ CTD_genes_pathways.tsv """
         with open(self.parent.outPath, 'a') as outFile:
             for filteredRow in self.parent.parseTsvFile():
                 zippedRow = self.addSourceNames(OrderedDict(zip(self.parent.outHeader, filteredRow)))
@@ -94,7 +111,7 @@ class CTD(SourceClass):
                 outFile.write(outString + '\n')
 
     def writeDiseasePathwayRelationships(self):
-        """ """
+        """ CTD_diseases_pathways.tsv """
         with open(self.parent.outPath, 'a') as outFile:
             relnDict = self.processRelationshipInfo()
             for relnTup, nodeInfo in relnDict.iteritems():
