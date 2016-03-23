@@ -115,3 +115,23 @@ class SourceClass(object):
         except IOError:
             print "Could not read infile in preparation for creating csv.DictReader() object"
 
+    def parseCsvFile(self):
+        """
+        Register comma delimited dialect and open .tsv using csv.DictReader()
+        Filter row in .tsv according to user selected attributes in .json
+        Yields filteredRow from generator
+        """
+        csv.register_dialect('commas', delimiter=',')
+        try:
+            with open(self.filePath, 'r') as inFile:
+                try:
+                    tsvReader = csv.DictReader(filter(lambda row: row[0] != '#', inFile),
+                                               dialect='commas', fieldnames=self.fileHeader)
+                    for row in tsvReader:
+                        filteredRow = [row[i].replace('|', ';') for i in self.inputAttributes]
+                        yield filteredRow  # filtered for only inputAttributes selected (synonyms and main attr)
+                except IOError:
+                    print "Could not properly read in .csv using csv.DictReader()"
+        except IOError:
+            print "Could not read infile in preparation for creating csv.DictReader() object"
+
