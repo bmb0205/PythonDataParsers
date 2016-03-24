@@ -21,32 +21,32 @@ class CTD(SourceClass):
 
     def checkFile(self):
 
-        if self.parent.file == 'CTD_chem_gene_ixn_types.tsv':
-            self.getChemGeneTypes()
+        # if self.parent.file == 'CTD_chem_gene_ixn_types.tsv':
+        #     self.getChemGeneTypes()
 
-        elif self.parent.file == 'CTD_chem_gene_ixns.tsv':
-            self.parent.writeHeader()
-        #     self.writeChemGeneRelationships()
+        # elif self.parent.file == 'CTD_chem_gene_ixns.tsv':
+        #     self.parent.writeHeader()
+        # #     self.writeChemGeneRelationships()
 
-        elif self.parent.file == 'CTD_chemicals_diseases.tsv':
-            self.parent.writeHeader()
+        # if self.parent.file == 'CTD_chemicals_diseases.tsv':
+        #     self.parent.writeHeader()
         #     self.writeChemDiseaseRelationships()
 
-        elif self.parent.file == 'CTD_genes_pathways.tsv':
-            self.parent.writeHeader()
-        #     self.writeGenePathwayRelationships()
+        # elif self.parent.file == 'CTD_genes_pathways.tsv':
+        #     self.parent.writeHeader()
+        # #     self.writeGenePathwayRelationships()
 
-        elif self.parent.file == 'CTD_diseases_pathways.tsv':
-            self.parent.writeHeader()
-        #     self.writeDiseasePathwayRelationships()
+        # elif self.parent.file == 'CTD_diseases_pathways.tsv':
+        #     self.parent.writeHeader()
+        # #     self.writeDiseasePathwayRelationships()
 
-        elif self.parent.file == 'CTD_chem_pathways_enriched.tsv':
-            self.parent.writeHeader()
+        # if self.parent.file == 'CTD_chem_pathways_enriched.tsv':
+        #     self.parent.writeHeader()
         #     self.writeChemPathwayRelationships()
 
-        elif self.parent.file == 'CTD_chem_go_enriched.tsv':
-            self.parent.writeHeader()
-            # self.writeChemGoRelationships()
+        # elif self.parent.file == 'CTD_chem_go_enriched.tsv':
+        #     self.parent.writeHeader()
+        #     # self.writeChemGoRelationships()
 
     def writeChemGoRelationships(self):
         """ CTD_chem_go_enriched.tsv """
@@ -55,6 +55,7 @@ class CTD(SourceClass):
                 zippedRow = OrderedDict(zip(self.parent.outHeader, filteredRow))
                 relnString = '|'.join((zippedRow['ChemicalID'], zippedRow['GOTermID'], zippedRow['PValue'],
                                        zippedRow['CorrectedPValue'], 'involved_in', self.parent.getFullSourceName()))
+                #  write rev reln
                 outFile.write(relnString + '\n')
 
     def writeChemPathwayRelationships(self):
@@ -64,6 +65,9 @@ class CTD(SourceClass):
                 zippedRow = OrderedDict(zip(self.parent.outHeader, filteredRow))
                 outString = '|'.join((zippedRow['ChemicalID'], zippedRow['PathwayID'], zippedRow['PValue'],
                                       self.parent.getFullSourceName(), 'involved_in'))
+                #  write rev reln...or not?
+                #  forward reln....<Chemical> involved_in <pathway>...or use involved_in_pathway
+                #  then use <pathway> involves_chemical <chemical>??
                 outFile.write(outString + '\n')
 
     def getChemGeneTypes(self):
@@ -89,6 +93,7 @@ class CTD(SourceClass):
                                            typeDict[typeName]['Code'], typeDict[typeName]['Description'],
                                            typeDict[typeName]['ParentCode'], self.parent.getFullSourceName()))
                     outFile.write(relnString + '\n')
+                    #  no rev reln for now
             end = time.clock()
             print 'time: ', end - start
 
@@ -100,7 +105,9 @@ class CTD(SourceClass):
                 outString = '|'.join(('|'.join(relnTup), ';'.join(nodeInfo['DirectEvidence']),
                                       ';'.join(nodeInfo['InferenceGeneSymbol']), ';'.join(nodeInfo['InferenceScore']),
                                       ';'.join(nodeInfo['OmimIDs']), 'associated_with', self.parent.getFullSourceName()))
-                outFile.write(outString + '\n')
+                print outString
+                #  rev reln...forward is <chemical> 'associated_with' <disease>, rev also 'associated_with'?
+                # outFile.write(outString + '\n')
 
     def writeGenePathwayRelationships(self):
         """ CTD_genes_pathways.tsv """
@@ -109,6 +116,7 @@ class CTD(SourceClass):
                 zippedRow = self.addSourceNames(OrderedDict(zip(self.parent.outHeader, filteredRow)))
                 outString = '|'.join(zippedRow.values()) + '|' + self.parent.getFullSourceName() + '|involved_in'
                 outFile.write(outString + '\n')
+                #  rev reln...forward is <gene> 'involved_in' <pathway>
 
     def writeDiseasePathwayRelationships(self):
         """ CTD_diseases_pathways.tsv """
@@ -118,6 +126,7 @@ class CTD(SourceClass):
                 outString = ('|'.join(relnTup) + '|' + ';'.join(nodeInfo['InferenceGeneSymbol']) +
                              '|' + self.parent.getFullSourceName() + '|involved_in')
                 outFile.write(outString + '\n')
+                #  rev reln...forward is <disease> 'involved_in' <pathway>
 
     def processRelationshipInfo(self):
         """ """
@@ -141,12 +150,6 @@ class CTD(SourceClass):
                         if attr:
                             relnDict[relnTup][header].add(attr)
             return relnDict
-
-
-
-
-
-
 
 
 
