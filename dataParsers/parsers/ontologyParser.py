@@ -54,7 +54,6 @@ def sortBlocks(blockList):
     termList = list()
     typedefList = list()
     for block in blockList:
-        print block, '\n'
         blockType = block[0]
         if blockType == "format-version: 1.2":
             metaData.append(block)
@@ -113,7 +112,6 @@ def parseTagValue(block):
 def writeOntologyNodes(nodeOutFile, nodeSet):
     """ Writes ontology nodes using attributes listed """
     nodeCount = 0
-    # print nodeOutFile
     with open(nodeOutFile, "w") as oboNodeOut:
         oboNodeOut.write("Source_ID:ID|Name|Source|Definition|Synonyms:string[]|:LABEL\n")
         for node in nodeSet:
@@ -131,12 +129,16 @@ def writeOntologyRelationships(relnOutFile, bigUniqueNodeSet, bigRelnSet):
     with open(relnOutFile, "w") as oboRelnOut:
         oboRelnOut.write(":START_ID|Source|:END_ID|:TYPE\n")
         for reln in bigRelnSet:
-            startNode = reln.split("|")[0]
+            splitReln = reln.split("|")
+            splitReln[0] = splitReln[0].split(' ! ')[0]
+            reln = '|'.join(splitReln)
             endNode = reln.split("|")[2]
+            startNode = splitReln[0]
             if startNode in bigUniqueNodeSet and endNode in bigUniqueNodeSet:
                 totalRelnCount += 1
                 reln = clean(reln)
                 oboRelnOut.write(reln + "\n")
+    print 'hehe', totalRelnCount
     return totalRelnCount
 
 
@@ -147,8 +149,10 @@ def parseObo(topDir, oboFilePath, termList, editedSource):
     Skips obsolete nodes, writes unique nodes to outfile, returns set of unique relationships.
     """
     uniqueNodeSet = set()
+    nodeCount = 0
     nodeSet = set()
     relnSet = set()
+    obsoleteNodeSet = set()
     # creates OntologyParser object for each term block
     for term in termList:
         dataDict = parseTagValue(term)
@@ -156,23 +160,29 @@ def parseObo(topDir, oboFilePath, termList, editedSource):
 
         # Skips obsolete nodes
         if ontologyObj.skipObsolete() is True:
+            obsoleteNodeSet.add(ontologyObj.getID())
             continue
 
         # creates node strings
         nodeString = "%s|%s|%s|%s|%s|%s\n" % (ontologyObj.getID(), ontologyObj.getName(), editedSource, ontologyObj.getDef(), ontologyObj.getSynonyms(), ontologyObj.getLabel())
-        nodeString = nodeString.replace("None", "").replace("|p|", "|plant_ontology|")
+        nodeString = nodeString.replace("None", "").replace("|p|", "|plant_ontology|").replace('MESH:', '')
         nodeSet.add(nodeString)
         uniqueNodeSet.add(ontologyObj.getID())
 
         # creates relationship strings within ontology files, adds to relnSet
         for reln in ontologyObj.getRelationships():
             relnString = "%s|%s|%s|%s" % (reln[0], editedSource, reln[2], reln[1])
+            if 'MESH:' in relnString:
+                relnString = relnString.replace('MESH:', '')
             relnSet.add(relnString)
 
     # writes nodes
-    nodeOutFile = (topDir + "csv_out/" + editedSource + ".csv")
-    nodeCount = writeOntologyNodes(nodeOutFile, nodeSet)
-    print "\t%s nodes have been created from this ontology." % locale.format("%d", nodeCount, True)
+    if "CTD" not in oboFilePath:
+        nodeOutFile = (topDir + "csv_out/" + editedSource + ".csv")
+        nodeCount = writeOntologyNodes(nodeOutFile, nodeSet)
+        print "\t%s nodes and %s relationships have been created from this ontology." % (locale.format("%d", nodeCount, True), locale.format("%d", len(relnSet), True))
+    else:
+        print "\t%s relationships have been created from this ontology." % locale.format("%d", len(relnSet), True)
     return uniqueNodeSet, relnSet, nodeCount
 
 
@@ -183,7 +193,11 @@ def parseRelnFiles(oboFilePath, termList, editedSource):
         dataDict = parseTagValue(term)
         ontologyObj = OntologyParser(**dataDict)
         for reln in ontologyObj.getRelationships():
-            relnString = "%s|%s|%s|%s" % (reln[0], editedSource, reln[2], reln[1])
+            if "!" in reln[0]:
+                cleanedStartNode = reln[0].split(' ! ')[0]
+                relnString = "%s|%s|%s|%s" % (cleanedStartNode, editedSource, reln[2], reln[1])
+            else:
+                relnString = "%s|%s|%s|%s" % (reln[0], editedSource, reln[2], reln[1])
             relnSet.add(relnString)
     print "\t%s relationships have been created from this ontology\n" % locale.format("%d", len(relnSet), True)
     return relnSet
@@ -241,7 +255,6 @@ def main(argv):
             topDir = arg
             locale.setlocale(locale.LC_ALL, "")
 
-            """ PARRRSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE """
             sourceList = os.listdir(topDir)[::-1]  # ['TTD', 'Ontologies', 'OMIM', 'NCBITaxonomy', 'NCBIEntrezGene', 'NAL', 'MeSH', 'CTD', 'csv_out']
             for source in sourceList:
                 sourcePath = os.path.join(topDir + source)
@@ -265,9 +278,10 @@ def main(argv):
                         if not oboFilePath.endswith(("GOmfbp_to_ChEBI03092015.obo", "molecular_function_xp_chebi03092015.obo")):
                             print "\n%s" % oboFilePath
                             uniqueNodeSet, relnSet, nodeCount = parseObo(topDir, oboFilePath, termList, editedSource)
-                            totalNodeCount += nodeCount
+                            if "CTD" not in oboFilePath:
+                                totalNodeCount += nodeCount
+                                bigUniqueNodeSet.update(uniqueNodeSet)
                             bigRelnSet.update(relnSet)
-                            bigUniqueNodeSet.update(uniqueNodeSet)
 
                         # creates relationship strings for cross-ontology files, adds to relnSet
                         else:
@@ -278,7 +292,7 @@ def main(argv):
                     # write relationships
                     relnOutFile = (topDir + "csv_out/oboRelnOut.csv")
                     totalRelnCount = writeOntologyRelationships(relnOutFile, bigUniqueNodeSet, bigRelnSet)
-
+                    print 'lol', totalRelnCount
                     endTime = time.clock()
                     duration = endTime - startTime
                     print "\n%s nodes and %s ontology relationships have been created." % (locale.format("%d", totalNodeCount, True), locale.format("%d", totalRelnCount, True))

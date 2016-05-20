@@ -5,7 +5,7 @@ import time
 import getopt
 import locale
 import os
-import general
+# import general
 from collections import defaultdict
 
 
@@ -29,65 +29,65 @@ Written by: Brandon Burciaga
 """
 
 
-class TTDParser(object):
+# class TTDParser(object):
 
-    def __init__(self, outPath, sourcePath, fileList):
-        self.sourcePath = sourcePath
-        self.fileList = fileList
-        self.outPath = outPath
+#     def __init__(self, outPath, sourcePath, fileList):
+#         self.sourcePath = sourcePath
+#         self.fileList = fileList
+#         self.outPath = outPath
 
-    def parseTTD(self):
-        """ Therapeutic Target Database """
+#     def parseTTD(self):
+#         """ Therapeutic Target Database """
 
-        print "\n\n\n============== PARSING THERAPEUTIC TARGET DATABASE (TTD) ==============="
+#         print "\n\n\n============== PARSING THERAPEUTIC TARGET DATABASE (TTD) ==============="
 
-        startTime = time.clock()
+#         startTime = time.clock()
 
-        # Create all outfiles, open them, and write header lines
-        ttdNodeOutFile = open((self.outPath + 'ttdNodeOut.csv'), 'w')
-        targetDiseaseNodeOutFile = open((self.outPath + 'ttdNodeOut2.csv'), 'w')
-        KEGGNodeOutFile = open((self.outPath + 'KEGGNodeOut.csv'), 'w')
-        KEGGRelnOutFile = open((self.outPath + 'targetKEGGRelnOut.csv'), 'w')
-        wikiNodeOutFile = open((self.outPath + 'wikiNodeOut.csv'), 'w')
-        wikiRelnOutFile = open((self.outPath + 'targetWikiRelnOut.csv'), 'w')
-        ttdNodeOutFile.write("Source_ID:ID|Name|Source|Function|Diseases|Synonyms:string[]|KEGG_Pathway|Wiki_Pathway|:LABEL\n")
-        targetDiseaseNodeOutFile.write("Source_ID:ID|Name|Source|Diseases:String[]|:LABEL\n")
-        KEGGNodeOutFile.write("Source_ID:ID|Name|Source|:LABEL\n")
-        KEGGRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
-        wikiNodeOutFile.write("Source_ID:ID|Name|Source|:LABEL\n")
-        wikiRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
+#         # Create all outfiles, open them, and write header lines
+#         ttdNodeOutFile = open((self.outPath + 'ttdNodeOut.csv'), 'w')
+#         targetDiseaseNodeOutFile = open((self.outPath + 'ttdNodeOut2.csv'), 'w')
+#         KEGGNodeOutFile = open((self.outPath + 'KEGGNodeOut.csv'), 'w')
+#         KEGGRelnOutFile = open((self.outPath + 'targetKEGGRelnOut.csv'), 'w')
+#         wikiNodeOutFile = open((self.outPath + 'wikiNodeOut.csv'), 'w')
+#         wikiRelnOutFile = open((self.outPath + 'targetWikiRelnOut.csv'), 'w')
+#         ttdNodeOutFile.write("Source_ID:ID|Name|Source|Function|Diseases|Synonyms:string[]|KEGG_Pathway|Wiki_Pathway|:LABEL\n")
+#         targetDiseaseNodeOutFile.write("Source_ID:ID|Name|Source|Diseases:String[]|:LABEL\n")
+#         KEGGNodeOutFile.write("Source_ID:ID|Name|Source|:LABEL\n")
+#         KEGGRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
+#         wikiNodeOutFile.write("Source_ID:ID|Name|Source|:LABEL\n")
+#         wikiRelnOutFile.write(":START_ID|Source|:END_ID|:TYPE\n")
 
-        print "\nProcessing files in:\n\t%s\n" % self.sourcePath
+#         print "\nProcessing files in:\n\t%s\n" % self.sourcePath
 
-        for ttdFile in self.fileList:
+#         for ttdFile in self.fileList:
 
-            ttdFilePath = os.path.join(self.sourcePath, ttdFile)
+#             ttdFilePath = os.path.join(self.sourcePath, ttdFile)
 
-            if ttdFilePath.endswith("TTD_download_raw.txt"):
-                print ttdFilePath
-                nodeDict, nodeSet = parseTTDNodes(ttdFilePath)
-                nodeCount = writeTTDNodes(nodeDict, ttdNodeOutFile)
+#             if ttdFilePath.endswith("TTD_download_raw.txt"):
+#                 print ttdFilePath
+#                 nodeDict, nodeSet = parseTTDNodes(ttdFilePath)
+#                 nodeCount = writeTTDNodes(nodeDict, ttdNodeOutFile)
 
-                tempPath = self.sourcePath + "/target-disease_TTD2016.txt"
-                print tempPath
-                targetDict = parseTargetDisease(tempPath, nodeSet)
-                nodeCount2 = writeTargetDiseaseNodes(targetDict, targetDiseaseNodeOutFile)
+#                 tempPath = self.sourcePath + "/target-disease_TTD2016.txt"
+#                 print tempPath
+#                 targetDict = parseTargetDisease(tempPath, nodeSet)
+#                 nodeCount2 = writeTargetDiseaseNodes(targetDict, targetDiseaseNodeOutFile)
 
-            elif ttdFilePath.endswith("Target-KEGGpathway_all.txt"):
-                print ttdFilePath
-                KEGGRelnCount = parseTargetKEGG(ttdFilePath, KEGGNodeOutFile, KEGGRelnOutFile)
+#             elif ttdFilePath.endswith("Target-KEGGpathway_all.txt"):
+#                 print ttdFilePath
+#                 KEGGRelnCount = parseTargetKEGG(ttdFilePath, KEGGNodeOutFile, KEGGRelnOutFile)
 
-            elif ttdFilePath.endswith("Target-wikipathway_all.txt"):
-                print ttdFilePath
-                wikiRelnCount = parseTargetWiki(ttdFilePath, wikiNodeOutFile, wikiRelnOutFile)
+#             elif ttdFilePath.endswith("Target-wikipathway_all.txt"):
+#                 print ttdFilePath
+#                 wikiRelnCount = parseTargetWiki(ttdFilePath, wikiNodeOutFile, wikiRelnOutFile)
 
-        endTime = time.clock()
-        duration = endTime - startTime
-        print ("\n%s total Therapeutic Target Database nodes have been created." %
-               (locale.format('%d', (nodeCount + nodeCount2), True)))
-        print ("\n%s total Therapeutic Target Database relationships have been created." %
-               (locale.format('%d', (KEGGRelnCount + wikiRelnCount), True)))
-        print "\nIt took %s seconds to create all TTD nodes and relationships\n" % duration
+#         endTime = time.clock()
+#         duration = endTime - startTime
+#         print ("\n%s total Therapeutic Target Database nodes have been created." %
+#                (locale.format('%d', (nodeCount + nodeCount2), True)))
+#         print ("\n%s total Therapeutic Target Database relationships have been created." %
+#                (locale.format('%d', (KEGGRelnCount + wikiRelnCount), True)))
+#         print "\nIt took %s seconds to create all TTD nodes and relationships\n" % duration
 
 
 def parseTTDNodes(ttdFilePath):

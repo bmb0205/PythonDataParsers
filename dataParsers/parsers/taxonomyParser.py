@@ -92,7 +92,7 @@ def parseCitations(citationsFilePath, taxMap):
             medlineID = columns[3].strip()
             nodeList = columns[-2].strip().split(" ")
             if not medlineID == "0":
-                if nodeList:
+                if nodeList[0] != '':
                     for node in nodeList:
                         nodeID = ("NCBI_TAXONOMY:" + node)
                         taxMap[nodeID]["medlineID"].add(medlineID)

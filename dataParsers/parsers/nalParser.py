@@ -87,10 +87,12 @@ def writeRelns(idDescriptorMap, nalMap, nalRelnOutFile):
     count = 0
     for startNode, attributes in nalMap.iteritems():
         for relationship in attributes["BT"]:
-            count += 1
+            count += 2
             endNode = idDescriptorMap[relationship]
             reln = "%s|National_Agricultural_Library|%s|is_a\n" % (startNode, endNode)
+            revReln = "%s|National_Agricultural_Library|%s|includes\n" % (endNode, startNode)
             nalRelnOutFile.write(reln)
+            nalRelnOutFile.write(revReln)
     print ("\n%s National Agricultural Library relationships have been created.\n" %
            locale.format('%d', count, True))
 
@@ -139,7 +141,7 @@ def main(argv):
     for opt, arg in opts:
         if opt in ['-h', '--help']:
             howToRun()
-        elif opt in ("-p", "--dirPath"):
+        elif opt in ["-p", "--dirPath"]:
             if not arg.endswith("/"):
                 arg = arg + "/"
             startTime = time.clock()
