@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# variables set
 outfileDir='/home/bmb0205/BiSD/KnowledgeBase/notouch/outfiles/'
 outfileDir2='/home/bmb0205/BiSD/KnowledgeBase/Sources/csv_out/'
 
