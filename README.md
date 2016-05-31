@@ -4,15 +4,15 @@ This directory contains python scripts that parse various scientific databases f
 
 All scripts written by Brandon Burciaga. 
 
-## Database sources
+# Database sources
 
 
-# NCBI Entrez Gene and Comparative Toxicogenomics Database (CTD)
+## NCBI Entrez Gene and Comparative Toxicogenomics Database (CTD)
 
 * refractor.py
 	* main module to run for CTD and NCBI Entrez Gene parsing
-	* Run as: python refactor.py -p ~/path/to/top/dir -s <source>
-		* <souurce> : 'CTD', 'NCBIEntrezGene'
+	* Run as: python refactor.py -p ~/path/to/top/dir -s source
+		* source : 'CTD', 'NCBIEntrezGene'
 
 	* Infile(s): 
 		* User edited JSON data file specifying files and attributes to parse for each source
@@ -30,14 +30,14 @@ All scripts written by Brandon Burciaga.
 	* Holds logic for processing Comparative Toxicogenomics Database nodes and relationships in preparation for writing to outfiles
 
 * sourceclass.py
-	* SourceClass is the parent class for each specific source class (NCBIEntrezGeen, CTD)
+	* SourceClass is the parent class for each specific source class (NCBIEntrezGene, CTD)
     * Contains attributes passed in from main() function in refactor.py, and
     * Class methods shared between the child classes for header fixing and generic tsv parsing
 
 * general.py
 	* Containse general functions for creating output directory, running help flags, etc used by sourceclass.py and refractor.py
 
-# NCBI Taxonomy 
+## NCBI Taxonomy 
 
 * taxonomyParser.py
 	* Parses NCBI Taxonomy database files for neo4j graph database node and relationship creation.
@@ -50,7 +50,7 @@ All scripts written by Brandon Burciaga.
 	* Outfile(s): taxNodeOut.csv, taxRelnOut.csv
 	* Imports: taxonomyClasses.py
 
-# Therapeutic Target Database (TTD), Medical Subject Headings (MeSH)
+## Therapeutic Target Database (TTD), Medical Subject Headings (MeSH)
 
 * ttdMeshParser.py is used to call the below modules
 	* see general.py or -h to find out how to use this script
@@ -80,7 +80,7 @@ All scripts written by Brandon Burciaga.
 	* Outfile(s): meshNodeOut.csv, meshRelnOut.csv
 
 
-# National Agricultural Library (NAL)
+## National Agricultural Library (NAL)
 
 * nalParser.py
 	* Parses National Agricultural Library thesaurus for neo4j graph database
@@ -93,7 +93,7 @@ All scripts written by Brandon Burciaga.
 	* Outfile(s): nalNodeOut.csv
 
 
-# Online Mendelian Inheritance in Man (OMIM)
+## Online Mendelian Inheritance in Man (OMIM)
 
 * omimParser.py
 	* Parses Online Mendelian Inheritance in Man (OMIM) database files
@@ -108,7 +108,7 @@ All scripts written by Brandon Burciaga.
 	* Outfile(s): mimDisorderNodeOut.csv, mimDisorderRenOut.csv, mimEntrezRelnOut.csv, mimGeneNodeOut.csv, mimGeneRelnOut.csv
 	* Imports: omimClasses.py module
 
-# Various Ontologies
+## Various Ontologies
 
 * ontologyParser.py
 	* Parses files from multiple ontologies for neo4j graph database node and relationship creation.
