@@ -29,13 +29,13 @@ All scripts written by Brandon Burciaga.
 	* Class is work in progress
 	* Holds logic for processing Comparative Toxicogenomics Database nodes and relationships in preparation for writing to outfiles
 
-* sourceclass.py
+* parent.py
 	* SourceClass is the parent class for each specific source class (NCBIEntrezGene, CTD)
     * Contains attributes passed in from main() function in refactor.py, and
     * Class methods shared between the child classes for header fixing and generic tsv parsing
 
 * general.py
-	* Containse general functions for creating output directory, running help flags, etc used by sourceclass.py and refractor.py
+	* Contains general functions for creating output directory, running help flags, etc used by parent.py and refractor.py
 
 ## NCBI Taxonomy 
 
@@ -123,6 +123,6 @@ All scripts written by Brandon Burciaga.
 	    * Mammalian Phenotype Ontology, http://obofoundry.org/ontology/mp.html
 	    * Gene Ontology --> CHEBI Ontology, http://geneontologyorg/
 	    * Plant Ontoogy, Plant Trait Ontology, http://www.plantontologyorg/download
-	* Outfile(s): GOmfbp_to_ChEBI.csv, MPheno.ontologycsv, chebi_ontologycsv, disease_ontologycsv, gene_ontologycsv,
-	    human_phenotype.csv, molecular_function_xp_chebi.csv, plant_trait_ontologycsv
+	* Outfile(s): GOmfbp_to_ChEBI.csv, MPheno.ontology.csv, chebi_ontology.csv, disease_ontology.csv, gene_ontology.csv,
+	    human_phenotype.csv, molecular_function_xp_chebi.csv, plant_trait_ontology.csv
 	* Imports: ontologyClasses.py module
